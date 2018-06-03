@@ -1,0 +1,30 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+EasyLocomotion KEYWORD1
+DiffDrive	KEYWORD2
+Vector2D	KEYWORD3
+Vector3D	KEYWORD4
+Quaternion	KEYWORD5
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD1
+loop	KEYWORD1
+
+#######################################
+# Constants (OBJECT1)
+#######################################
+
+EPSILON	OBJECT1OBJECT1
+Vector2D_ZERO	OBJECT1
+Vector3D_ZERO	OBJECT1
+Quaternion_ZERO	OBJECT1
+Vector2D_ONE_X OBJECT1
+Vector2D_ONE_Y OBJECT1
+Vector3D_ONE_X OBJECT1
+Vector3D_ONE_Y OBJECT1
+Vector3D_ONE_Z OBJECT1

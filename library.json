@@ -1,0 +1,24 @@
+{
+  "name": "EasyLocomotion",
+  "authors":
+  {
+    "name": "Andrius Mikonis",
+    "email": "andrius.mikonis@gmail.com",
+    "url": ""
+  },
+  "keywords": "drive, wheels, locomotion, legs, robot",
+  "description": "Library which makes it easy to add locomotion to various robots.",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/foxis/EasyLocomotion.git"
+  },
+  "frameworks": "arduino",
+  "platforms":
+  [
+    "esp8266",
+    "esp32",
+		"espressif32",
+    "espressif8266"
+  ]
+}
