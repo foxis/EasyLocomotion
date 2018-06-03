@@ -32,6 +32,7 @@ namespace Locomotion {
 
 class SPIDevice : public ReadWriteMixin
 {
+protected:
 	uint8_t _ss_pin;
 	uint8_t _reset_pin;
 
@@ -68,6 +69,7 @@ public:
 	  delayMicroseconds(75);
 		while (size--) {
 			*(p++) =  SPI.transfer(0xff);
+			delayMicroseconds(10);
 		}
 	  digitalWrite(_ss_pin, HIGH);
 	  delayMicroseconds(5);

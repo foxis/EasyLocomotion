@@ -44,12 +44,8 @@ public:
 		pinMode(_AB, OUTPUT);
 		pinMode(_BA, OUTPUT);
 		pinMode(_BB, OUTPUT);
-	}
-
-	void setSpeed(real_t a, real_t b)
-	{
-		setLeftSpeed(a);
-		setRightSpeed(b);
+		setLeftSpeed(0);
+		setRightSpeed(0);
 	}
 
 	void setMotorSpeed(uint8_t A, uint8_t B, real_t a)

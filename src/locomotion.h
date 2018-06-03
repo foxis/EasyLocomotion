@@ -49,8 +49,8 @@ public:
 	}
 	virtual void loop(unsigned long now)
 	{
-		if (now - last_updated > thrust_off_timeout) {
-			setThrust(Quaternion(0,0,0,0));
+		if (thrust_off_timeout > 0 && now - last_updated > thrust_off_timeout) {
+			setThrust(Quaternion_ZERO);
 			last_updated = now;
 		}
 	}

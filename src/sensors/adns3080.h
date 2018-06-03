@@ -101,7 +101,7 @@ public:
 		}
 
 		// turn on sensitive mode
-		write8(ADNS3080_CONFIGURATION_BITS, 0x19);
+		write8(ADNS3080_CONFIGURATION_BITS | 0x80, 0x19);
 		_init = true;
 	}
 
@@ -120,11 +120,44 @@ public:
 	{
 		if (!_init) return 0;
 
-	  write8(ADNS3080_FRAME_CAPTURE, 0x83);
+	  write8(ADNS3080_FRAME_CAPTURE | 0x80, 0x83);
 
-		read(ADNS3080_PIXEL_BURST, pdata, ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y);
+	  digitalWrite(_ss_pin, LOW);
+
+	  SPI.transfer(ADNS3080_PIXEL_BURST);
+	  delayMicroseconds(50);
+
+	  int pix;
+	  byte started = 0;
+	  int count;
+	  int timeout = 0;
+	  int ret = 0;
+	  for (count = 0; count < ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y; )
+	  {
+	    pix = SPI.transfer(0xff);
+	    delayMicroseconds(10);
+	    if (started == 0)
+	    {
+	      if (pix & 0x40)
+	        started = 1;
+	      else
+	      {
+	        timeout++;
+	        if (timeout == 100)
+	        {
+	          ret = -1;
+	          break;
+	        }
+	      }
+	    }
+	    if (started == 1)
+	    {
+	      pdata[count++] = (pix & 0x3f) << 2; // scale to normal grayscale byte range
+	    }
+	  }
+
+	  digitalWrite(_ss_pin, HIGH);
 	  delayMicroseconds(14);
-
 	  return ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y;
 	}
 };

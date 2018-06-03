@@ -27,44 +27,12 @@
 
 namespace Locomotion {
 
-class DiffDrive : public Locomotion, public SimpleHBridge
-{
-
-  real_t _wheelBase;
-
-  real_t _vTarget;
-  real_t _wTarget;
-
+class DiffDriveMixin {
 public:
-  DiffDrive(int AA, int AB, int BA, int BB, real_t wheelBase)
-    :DiffDrive(AA, AB, BA, BB, PWMRANGE + 1, wheelBase)
-  {
-
-  }
-
-  DiffDrive(int AA, int AB, int BA, int BB, int motorConst, real_t wheelBase)
-		:Locomotion(),
-		 SimpleHBridge(AA, AB, BA, BB, motorConst)
-  {
-    _wheelBase = wheelBase;
-  }
-
-  virtual void begin()
-  {
-		Locomotion::begin();
-		SimpleHBridge::begin();
-	}
-
-
-	virtual void setThrust(const Quaternion& thrust) {
-		Locomotion::setThrust(thrust);
-		setCurrentThrust(thrust);
-		setDiffSpeed(thrust.getMagnitude(), thrust.w);
-		updated(millis());
-	}
-
-
+	DiffDriveMixin() {}
 protected:
+	virtual void setSpeed(real_t a, real_t b) = 0;
+
 	/// power - differential drive train power
 	/// w - rotational power (normalized wL)
 	/// all control parameters range -1.0 ... +1.0
@@ -74,8 +42,47 @@ protected:
 		real_t b = (2.0 * power - w) / 2.0;
 		setSpeed(a, b);
 	}
+};
 
+class DiffDrive : public Locomotion, protected DiffDriveMixin, protected SimpleHBridge
+{
 
+  real_t _wheelBase;
+
+public:
+  DiffDrive(uint8_t AA, uint8_t AB, uint8_t BA, uint8_t BB, real_t wheelBase)
+    :DiffDrive(AA, AB, BA, BB, PWMRANGE+1, wheelBase)
+  {
+
+  }
+
+  DiffDrive(uint8_t AA, uint8_t AB, uint8_t BA, uint8_t BB, uint16_t motorConst, real_t wheelBase)
+		:Locomotion(),
+		 DiffDriveMixin(),
+		 SimpleHBridge(AA, AB, BA, BB, motorConst)
+  {
+    _wheelBase = wheelBase;
+		//thrust_off_timeout = 0;
+  }
+
+  virtual void begin()
+  {
+		Locomotion::begin();
+		SimpleHBridge::begin();
+	}
+
+	virtual void setThrust(const Quaternion& thrust) {
+		Locomotion::setThrust(thrust);
+		setCurrentThrust(thrust);
+		setDiffSpeed(thrust.x, thrust.w);
+	}
+
+protected:
+	virtual void setSpeed(real_t a, real_t b)
+	{
+		setLeftSpeed(a);
+		setRightSpeed(b);
+	}
 };
 };
 
