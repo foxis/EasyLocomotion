@@ -34,30 +34,19 @@ class SPIDevice : public ReadWriteMixin
 	int _reset_pin;
 
 public:
-	typedef struct MD
-	{
-	  byte motion;
-	  char dx, dy;
-	  byte squal;
-	  word shutter;
-	  byte max_pix;
-	} MD_t;
-
-public:
 	ADNS3080(int ss_pin, int reset) {
 		_ss_pin = ss_pin;
 		_reset_pin = reset;
-		_init = false;
 	}
 
-	void reset() {
+	virtual void reset() {
 		digitalWrite(_reset_pin, HIGH);
 		delay(1); // reset pulse >10us
 		digitalWrite(_reset_pin, LOW);
 		delay(35); // 35ms from reset to functional
 	}
 
-	void begin() {
+	virtual void begin() {
 		SPI.begin();
 		SPI.setClockDivider(SPI_CLOCK_DIV32);
 	  SPI.setDataMode(SPI_MODE3);

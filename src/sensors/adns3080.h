@@ -25,7 +25,7 @@
 #define ADNS3080_H
 
 #include <Arduino.h>
-#include <SPI.h>
+#include "../SPIDevice.h"
 
 
 #define ADNS3080_PIXELS_X                 30
@@ -65,10 +65,8 @@
 
 #define ADNS3080_PRODUCT_ID_VAL        0x17
 
-class ADNS3080
+class ADNS3080 : public SPIDevice
 {
-	int _ss_pin;
-	int _reset_pin;
 	bool _init;
 
 public:
@@ -82,128 +80,50 @@ public:
 	} MD_t;
 
 public:
-	ADNS3080(int ss_pin, int reset) {
-		_ss_pin = ss_pin;
-		_reset_pin = reset;
+	ADNS3080(uint8_t ss_pin, uint8_t reset) : SPIDevice(ss_pin, reset) {
 		_init = false;
 	}
 
-	void reset() {
-		digitalWrite(_reset_pin, HIGH);
-		delay(1); // reset pulse >10us
-		digitalWrite(_reset_pin, LOW);
-		delay(35); // 35ms from reset to functional
-		write_reg(ADNS3080_CONFIGURATION_BITS, 0x19);
+	virtual void reset() {
+		SPIDevice::reset();
+		write8(ADNS3080_CONFIGURATION_BITS, 0x19);
 	}
 
-	void begin() {
-		SPI.begin();
-		SPI.setClockDivider(SPI_CLOCK_DIV32);
-	  SPI.setDataMode(SPI_MODE3);
-	  SPI.setBitOrder(MSBFIRST);
-		pinMode(_ss_pin, OUTPUT);
-		pinMode(_reset_pin, OUTPUT);
-		digitalWrite(_ss_pin, HIGH);
-		digitalWrite(_reset_pin, HIGH);
+	virtual void begin() {
+		SPIDevice::begin();
 
-		reset();
-
-		int pid = read_reg(ADNS3080_PRODUCT_ID);
+		uint8_t pid = read8(ADNS3080_PRODUCT_ID);
 		if (pid != ADNS3080_PRODUCT_ID_VAL) {
 			_init = false;
 			return ;
 		}
 
 		// turn on sensitive mode
-		write_reg(ADNS3080_CONFIGURATION_BITS, 0x19);
+		write8(ADNS3080_CONFIGURATION_BITS, 0x19);
 		_init = true;
 	}
 
-	void read_motion(MD_t * p)
+	void read_motion(MD_t * motion_data)
 	{
 		if (!_init) return;
 
-	  digitalWrite(_ss_pin, LOW);
-	  SPI.transfer(ADNS3080_MOTION_BURST);
-	  delayMicroseconds(75);
-	  p->motion =  SPI.transfer(0xff);
-	  p->dx =  SPI.transfer(0xff);
-	  p->dy =  SPI.transfer(0xff);
-	  p->squal =  SPI.transfer(0xff);
-	  p->shutter =  SPI.transfer(0xff) << 8;
-	  p->shutter |=  SPI.transfer(0xff);
-	  p->max_pix =  SPI.transfer(0xff);
-	  digitalWrite(_ss_pin, HIGH);
-	  delayMicroseconds(5);
+		read(ADNS3080_MOTION_BURST, motion_data, sizeof(MD_t));
+
+		p->shutter = (p->shutter << 8) | (p->shutter >> 8);
 	}
 
 	// pdata must point to an array of size ADNS3080_PIXELS_X x ADNS3080_PIXELS_Y
 	// you must call mousecam_reset() after this if you want to go back to normal operation
-	size_t frame_capture(byte *pdata)
+	size_t frame_capture(uint8_t *pdata)
 	{
 		if (!_init) return 0;
 
-	  write_reg(ADNS3080_FRAME_CAPTURE, 0x83);
+	  write8(ADNS3080_FRAME_CAPTURE, 0x83);
 
-	  digitalWrite(_ss_pin, LOW);
-
-	  SPI.transfer(ADNS3080_PIXEL_BURST);
-	  delayMicroseconds(50);
-
-	  byte pix;
-	  byte started = 0;
-	  size_t count;
-	  int timeout = 0;
-	  size_t ret = 0;
-	  for (count = 0; count < ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y; )
-	  {
-	    pix = SPI.transfer(0xff);
-	    delayMicroseconds(10);
-	    if (started == 0)
-	    {
-	      if (pix & 0x40)
-	        started = 1;
-	      else
-	      {
-	        timeout++;
-	        if (timeout == 100)
-	        {
-	          ret = 0;
-	          break;
-	        }
-	      }
-	    }
-	    if (started == 1)
-	    {
-	      pdata[count++] = (pix & 0x3f); // scale to normal grayscale byte range
-	    }
-	  }
-
-	  digitalWrite(_ss_pin, HIGH);
+		read(ADNS3080_PIXEL_BURST, pdata, ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y);
 	  delayMicroseconds(14);
 
-	  return ret;
-	}
-
-protected:
-	void write_reg(byte reg, byte val)
-	{
-	  digitalWrite(_ss_pin, LOW);
-	  SPI.transfer(reg | 0x80);
-	  SPI.transfer(val);
-	  digitalWrite(_ss_pin, HIGH);
-	  delayMicroseconds(50);
-	}
-
-	byte read_reg(byte reg)
-	{
-	  digitalWrite(_ss_pin, LOW);
-	  SPI.transfer(reg);
-	  delayMicroseconds(75);
-	  byte ret = SPI.transfer(0xff);
-	  digitalWrite(_ss_pin, HIGH);
-	  delayMicroseconds(1);
-	  return ret;
+	  return ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y;
 	}
 };
 

@@ -40,8 +40,7 @@ public:
 	}
 
 	virtual void read(uint8_t reg, uint8_t * out, uint8_t max_len) {
-		if (reg != 0xFF)
-			wire->write(reg);
+		wire->write(reg);
 		wire->requestFrom(addr, max_len);
     while (max_len--)
       *(out++) = wire->read();
@@ -53,8 +52,6 @@ public:
       if (data != NULL) wire->write(data, len);
       wire->endTransmission();
   }
-
-
 };
 
 #endif

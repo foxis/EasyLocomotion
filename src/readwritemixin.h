@@ -15,6 +15,12 @@ public:
     return data[0];
   }
 
+	uint16_t read16(uint8_t reg) {
+    uint8_t data[2] = {};
+    read(reg, data, sizeof(data));
+    return data[0] | (data[1] << 8);
+  }
+
 	void write8(uint8_t reg, uint8_t d) {
 		uint8_t data[] = {d};
 		write(reg, data, sizeof(data));
