@@ -40,6 +40,8 @@
 #define ALLLED_OFF_L 0xFC
 #define ALLLED_OFF_H 0xFD
 
+namespace Locomotion {
+
 class PCA9685 : public TwoWireDevice {
 public:
 	PCA9685(TwoWire * wire)
@@ -85,5 +87,7 @@ public:
     write8(PCA9685_MODE1, 0x0);
   }
 };
+
+}
 
 #endif

@@ -28,13 +28,15 @@
 #include <SPI.h>
 #include "readwritemixin.h"
 
+namespace Locomotion {
+
 class SPIDevice : public ReadWriteMixin
 {
-	int _ss_pin;
-	int _reset_pin;
+	uint8_t _ss_pin;
+	uint8_t _reset_pin;
 
 public:
-	ADNS3080(int ss_pin, int reset) {
+	SPIDevice(uint8_t ss_pin, uint8_t reset) {
 		_ss_pin = ss_pin;
 		_reset_pin = reset;
 	}
@@ -59,30 +61,32 @@ public:
 		reset();
 	}
 
-	virtual void read(uint8_t reg, void * p, size_t size)
+	virtual void read(uint8_t reg, uint8_t * p, size_t size)
 	{
 	  digitalWrite(_ss_pin, LOW);
 	  SPI.transfer(reg);
 	  delayMicroseconds(75);
 		while (size--) {
-			*((uint8_t*)p++) =  SPI.transfer(0xff);
+			*(p++) =  SPI.transfer(0xff);
 		}
 	  digitalWrite(_ss_pin, HIGH);
 	  delayMicroseconds(5);
 	}
 
-	virtual void write(uint8_t reg, void * p, size_t size)
+	virtual void write(uint8_t reg, const uint8_t * p, size_t size)
 	{
 	  digitalWrite(_ss_pin, LOW);
 	  SPI.transfer(reg);
 	  delayMicroseconds(75);
 		while (size--) {
-			SPI.transfer(*((uint8_t*)p++));
+			SPI.transfer(*(p++));
 		}
 	  digitalWrite(_ss_pin, HIGH);
 	  delayMicroseconds(5);
 	}
 
 };
+
+}
 
 #endif

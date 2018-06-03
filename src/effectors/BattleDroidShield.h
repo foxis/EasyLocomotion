@@ -41,6 +41,8 @@
 #define ALLLED_OFF_L 0xFC
 #define ALLLED_OFF_H 0xFD
 
+namespace Locomotion {
+
 class BattleDroidShield {
 	TwoWireDevice io;
 	PCA9685 pwm;
@@ -96,5 +98,6 @@ protected:
   byte io_data;
 };
 
+}
 
 #endif

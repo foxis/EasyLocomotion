@@ -24,6 +24,8 @@
 #include <Wire.h>
 #include "readwritemixin.h"
 
+namespace Locomotion {
+
 class TwoWireDevice : public ReadWriteMixin {
 protected:
 	uint8_t addr;
@@ -39,7 +41,7 @@ public:
 			wire->begin();
 	}
 
-	virtual void read(uint8_t reg, uint8_t * out, uint8_t max_len) {
+	virtual void read(uint8_t reg, uint8_t * out, size_t max_len) {
 		wire->write(reg);
 		wire->requestFrom(addr, max_len);
     while (max_len--)
@@ -53,5 +55,7 @@ public:
       wire->endTransmission();
   }
 };
+
+}
 
 #endif

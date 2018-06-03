@@ -65,6 +65,8 @@
 
 #define ADNS3080_PRODUCT_ID_VAL        0x17
 
+namespace Locomotion {
+
 class ADNS3080 : public SPIDevice
 {
 	bool _init;
@@ -107,9 +109,9 @@ public:
 	{
 		if (!_init) return;
 
-		read(ADNS3080_MOTION_BURST, motion_data, sizeof(MD_t));
+		read(ADNS3080_MOTION_BURST, (uint8_t*)motion_data, sizeof(MD_t));
 
-		p->shutter = (p->shutter << 8) | (p->shutter >> 8);
+		motion_data->shutter = (motion_data->shutter << 8) | (motion_data->shutter >> 8);
 	}
 
 	// pdata must point to an array of size ADNS3080_PIXELS_X x ADNS3080_PIXELS_Y
@@ -126,5 +128,7 @@ public:
 	  return ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y;
 	}
 };
+
+}
 
 #endif

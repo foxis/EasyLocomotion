@@ -3,10 +3,12 @@
 
 #include <Arduino.h>
 
+namespace Locomotion {
+
 class ReadWriteMixin {
 public:
 
-	virtual void read(uint8_t reg, uint8_t * out, uint8_t max_len) = 0;
+	virtual void read(uint8_t reg, uint8_t * out, size_t max_len) = 0;
 	virtual void write(uint8_t reg, const uint8_t * data, size_t len) = 0;
 
 	uint8_t read8(uint8_t reg) {
@@ -39,5 +41,7 @@ public:
 		write(reg, data, sizeof(data));
 	}
 };
+
+}
 
 #endif

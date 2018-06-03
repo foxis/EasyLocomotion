@@ -23,12 +23,14 @@
 #include <Arduino.h>
 #include "../math_utils.h"
 
+namespace Locomotion {
+
 class SimpleHBridge {
-	int _AA, _AB, _BB, _BA;
+	uint8_t _AA, _AB, _BB, _BA;
 	uint16_t _motorConst;
 
 public:
-	SimpleHBridge(int AA, int AB, int BA, int BB, int motorConst) {
+	SimpleHBridge(uint8_t AA, uint8_t AB, uint8_t BA, uint8_t BB, uint16_t motorConst) {
 		_AA = AA;
 		_BB = BB;
 		_AB = AB;
@@ -50,7 +52,7 @@ public:
 		setRightSpeed(b);
 	}
 
-	void setMotorSpeed(int A, int B, real_t a)
+	void setMotorSpeed(uint8_t A, uint8_t B, real_t a)
 	{
 		uint16_t motor = min((uint16_t)_motorConst, (uint16_t)abs(a * _motorConst));
 		analogWrite(A, a > 0 ? motor : 0);
@@ -67,4 +69,5 @@ public:
 	}
 };
 
+}
 #endif // SIMPLEHBRIDGE_H
