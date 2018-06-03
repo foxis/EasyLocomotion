@@ -20,6 +20,7 @@
 #if !defined(DIFFDRIVEBALANCERNOENC_H)
 #define DIFFDRIVEBALANCERNOENC_H
 
+#include "Arduino.h"
 #include <Wire.h>
 #define SENSORS_MPU6050_ATTACHED
 #include <Sensors.h>
