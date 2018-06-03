@@ -1,4 +1,4 @@
-/*  ESPBalancingRobot
+/*  EasyLocomotion
  *
  *  Copyright (C) 2018  foxis (Andrius Mikonis <andrius.mikonis@gmail.com>)
  *
@@ -16,6 +16,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#if !defined(DIFFDRIVE_H)
+#define DIFFDRIVE_H
 
 #include "Arduino.h"
 
@@ -69,7 +72,7 @@ public:
 	}
 
 
-private:
+protected:
 	/// power - differential drive train power
 	/// w - rotational power (normalized wL)
 	/// all control parameters range -1.0 ... +1.0
@@ -103,3 +106,5 @@ private:
   }
 };
 };
+
+#endif

@@ -25,7 +25,7 @@
 namespace Locomotion {
 
 class Locomotion {
-private:
+protected:
 	unsigned long last_updated;
 	Quaternion targetOrientation;
 	Quaternion currentOrientation;
@@ -33,9 +33,12 @@ private:
 	Quaternion targetThrust;
 	Quaternion currentThrust;
 
+	unsigned long thrust_off_timeout;
+
 public:
 	Locomotion() {
 		last_updated = 0;
+		thrust_off_timeout = 2000;
 	}
 
 	virtual void begin() {
@@ -46,7 +49,7 @@ public:
 	}
 	virtual void loop(unsigned long now)
 	{
-		if (now - last_updated > 2000) {
+		if (now - last_updated > thrust_off_timeout) {
 			setThrust(Quaternion(0,0,0,0));
 			last_updated = now;
 		}
@@ -54,6 +57,10 @@ public:
 
 	virtual void updated(unsigned long now) {
 		last_updated = now;
+	}
+	virtual void updated(unsigned long now, unsigned long timeout) {
+		last_updated = now;
+		thrust_off_timeout = timeout;
 	}
 
 	virtual void setOrientation(const Quaternion& orientation) {
