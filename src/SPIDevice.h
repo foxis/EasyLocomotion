@@ -35,25 +35,33 @@ class SPIDevice : public ReadWriteMixin
 protected:
 	uint8_t _ss_pin;
 	uint8_t _reset_pin;
+	SPIClass * _spi;
+	uint16_t reset_delay;
+	uint16_t register_delay;
+	uint16_t transfer_delay;
 
 public:
-	SPIDevice(uint8_t ss_pin, uint8_t reset) {
+	SPIDevice(uint8_t ss_pin, uint8_t reset) : SPIDevice(&SPI, ss_pin, reset) {}
+	SPIDevice(SPIClass * spi, uint8_t ss_pin, uint8_t reset) {
 		_ss_pin = ss_pin;
 		_reset_pin = reset;
+		_spi = spi;
+		reset_delay = 35;
+		register_delay = 75;
+		transfer_delay = 10;
 	}
 
 	virtual void reset() {
 		digitalWrite(_reset_pin, HIGH);
 		delay(1); // reset pulse >10us
 		digitalWrite(_reset_pin, LOW);
-		delay(35); // 35ms from reset to functional
+		delay(reset_delay); // 35ms from reset to functional
 	}
 
-	virtual void begin() {
-		SPI.begin();
-		SPI.setClockDivider(SPI_CLOCK_DIV32);
-	  SPI.setDataMode(SPI_MODE3);
-	  SPI.setBitOrder(MSBFIRST);
+	virtual void begin(bool init) {
+		if (init)
+			_spi->begin();
+
 		pinMode(_ss_pin, OUTPUT);
 		pinMode(_reset_pin, OUTPUT);
 		digitalWrite(_ss_pin, HIGH);
@@ -65,11 +73,11 @@ public:
 	virtual void read(uint8_t reg, uint8_t * p, size_t size)
 	{
 	  digitalWrite(_ss_pin, LOW);
-	  SPI.transfer(reg);
-	  delayMicroseconds(75);
+	  _spi->transfer(reg);
+	  delayMicroseconds(register_delay);
 		while (size--) {
-			*(p++) =  SPI.transfer(0xff);
-			delayMicroseconds(10);
+			*(p++) =  _spi->transfer(0xff);
+			delayMicroseconds(transfer_delay);
 		}
 	  digitalWrite(_ss_pin, HIGH);
 	  delayMicroseconds(5);
@@ -78,10 +86,11 @@ public:
 	virtual void write(uint8_t reg, const uint8_t * p, size_t size)
 	{
 	  digitalWrite(_ss_pin, LOW);
-	  SPI.transfer(reg);
-	  delayMicroseconds(75);
+	  _spi->transfer(reg);
+	  delayMicroseconds(register_delay);
 		while (size--) {
-			SPI.transfer(*(p++));
+			_spi->transfer(*(p++));
+			delayMicroseconds(transfer_delay);
 		}
 	  digitalWrite(_ss_pin, HIGH);
 	  delayMicroseconds(5);

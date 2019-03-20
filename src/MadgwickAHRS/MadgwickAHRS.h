@@ -85,6 +85,9 @@ public:
         if (!anglesComputed) computeAngles();
         return yaw;
     }
+		Quaternion<T> getQuaternion() {
+			return Quaternion<T>(q0, q1, q2, q3);
+		}
 };
 
 //-------------------------------------------------------------------------------------------

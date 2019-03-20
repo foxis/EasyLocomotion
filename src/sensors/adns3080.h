@@ -82,7 +82,8 @@ public:
 	} MD_t;
 
 public:
-	ADNS3080(uint8_t ss_pin, uint8_t reset) : SPIDevice(ss_pin, reset) {
+	ADNS3080(uint8_t ss_pin, uint8_t reset) : ADNS3080(&SPI, ss_pin, reset) {}
+	ADNS3080(SPIClass * spi, uint8_t ss_pin, uint8_t reset) : SPIDevice(spi, ss_pin, reset) {
 		_init = false;
 	}
 
@@ -91,8 +92,13 @@ public:
 		write8(ADNS3080_CONFIGURATION_BITS, 0x19);
 	}
 
-	virtual void begin() {
-		SPIDevice::begin();
+	virtual void begin(bool init) {
+		SPIDevice::begin(init);
+		_spi->setClockDivider(SPI_CLOCK_DIV32);
+	  _spi->setDataMode(SPI_MODE3);
+	  _spi->setBitOrder(MSBFIRST);
+		_spi->setHwCs(false);
+		SPIDevice::reset();
 
 		uint8_t pid = read8(ADNS3080_PRODUCT_ID);
 		if (pid != ADNS3080_PRODUCT_ID_VAL) {
@@ -124,7 +130,7 @@ public:
 
 	  digitalWrite(_ss_pin, LOW);
 
-	  SPI.transfer(ADNS3080_PIXEL_BURST);
+	  _spi->transfer(ADNS3080_PIXEL_BURST);
 	  delayMicroseconds(50);
 
 	  int pix;
@@ -134,7 +140,7 @@ public:
 	  int ret = 0;
 	  for (count = 0; count < ADNS3080_PIXELS_X * ADNS3080_PIXELS_Y; )
 	  {
-	    pix = SPI.transfer(0xff);
+	    pix = _spi->transfer(0xff);
 	    delayMicroseconds(10);
 	    if (started == 0)
 	    {

@@ -6,6 +6,7 @@
 #include "effectors/PCA9685.h"
 #include <vector>
 #include <map>
+#include <string>
 
 namespace Locomotion {
 
@@ -72,10 +73,35 @@ public:
 	}
 };
 
+/// Gait is defined as a series of end effector positions
+/// encoded by 0a-zA-Z as 0-64 in X, Y and Z. e.g. "000zZ0" as 0x0x0, 32x64x0
+class Gait {
+	std::vector<std::string> stages;
+	std::vector<Limb> * limbs;
+	unsigned long last_now;
+
+public:
+	Gait() {}
+	Gait(const char ** stages, size_t stage_count) {
+
+	}
+
+	virtual void begin(std::vector<Limb> * limbs) {
+		// TODO iterate over expanders
+		// TODO iterate over limbs
+	}
+
+	virtual void loop(unsigned long now) {
+		// TODO iterate over limbs
+		last_now = now;
+	}
+};
+
 class HexapodDrive : public Locomotion {
 protected:
 		std::vector<Limb> limbs;
 		std::map<uint8_t, PCA9685> expanders;
+		std::map<std::string, Gait*> gaits;
 		unsigned long last_now;
 
 public:
@@ -99,6 +125,13 @@ public:
 	}
 	virtual size_t getLimbCount() {
 		return limbs.size();
+	}
+
+	Gait* getGait(const std::string& name) {
+		return gaits[name];
+	}
+	void addGait(const std::string& name, Gait* gait) {
+		gaits.insert(std::pair<std::string, Gait*>(name, gait));
 	}
 };
 
