@@ -152,7 +152,12 @@ public:
 	T x, y, z;
 };
 
-typedef double real_t;
+#ifndef __AVR__
+	typedef double real_t;
+#else
+	typedef float real_t;
+#endif
+
 typedef _Vector2D<real_t> Vector2D;
 typedef _Vector3D<real_t> Vector3D;
 typedef _Quaternion<real_t> Quaternion;

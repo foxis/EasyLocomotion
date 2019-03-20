@@ -20,12 +20,11 @@
 #if !defined(SIMPLEHBRIDGE_H)
 #define SIMPLEHBRIDGE_H
 
-#include <Arduino.h>
-#include "../math_utils.h"
+#include "MotorDriverBase.h"
 
 namespace Locomotion {
 
-class SimpleHBridge {
+class SimpleHBridge : public MotorDriverBase {
 	uint8_t _AA, _AB, _BB, _BA;
 	uint16_t _motorConst;
 
@@ -38,6 +37,8 @@ public:
 		_motorConst = motorConst;
 	}
 
+	virtual void enable(bool) {}
+
 	virtual void begin()
 	{
 		pinMode(_AA, OUTPUT);
@@ -48,20 +49,21 @@ public:
 		setRightSpeed(0);
 	}
 
+	virtual void setLeftSpeed(real_t a)
+	{
+		setMotorSpeed(_AA, _AB, a);
+	}
+	virtual void setRightSpeed(real_t b)
+	{
+		setMotorSpeed(_BA, _BB, -b);
+	}
+
+private:
 	void setMotorSpeed(uint8_t A, uint8_t B, real_t a)
 	{
 		uint16_t motor = min((uint16_t)_motorConst, (uint16_t)abs(a * _motorConst));
 		analogWrite(A, a > 0 ? motor : 0);
 		analogWrite(B, a > 0 ? 0: motor);
-	}
-
-	void setLeftSpeed(real_t a)
-	{
-		setMotorSpeed(_AA, _AB, a);
-	}
-	void setRightSpeed(real_t b)
-	{
-		setMotorSpeed(_BA, _BB, -b);
 	}
 };
 

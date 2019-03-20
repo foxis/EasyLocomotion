@@ -23,6 +23,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "PCA9685.h"
+#include "MotorDriverBase.h"
 
 #define PCA9685_SUBADR1 0x2
 #define PCA9685_SUBADR2 0x3
@@ -43,7 +44,7 @@
 
 namespace Locomotion {
 
-class BattleDroidShield {
+class BattleDroidShield : public MotorDriverBase {
 	TwoWireDevice io;
 	PCA9685 pwm;
 public:
@@ -55,7 +56,11 @@ public:
 		  pwm(wire, pwm_addr) {
 	}
 
-  void begin(bool init) {
+	virtual void begin() {
+		begin(true);
+	}
+
+  virtual void begin(bool init) {
     io.begin(false);
 		pwm.begin(false);
 		if (init)
@@ -63,15 +68,20 @@ public:
     reset();
   }
 
-  void setMotorsSpeed(float a, float b) {
+	virtual void enable(bool) {}
+
+  virtual void setMotorsSpeed(real_t a, real_t b) {
     // 0 STBY, 1 !OE, 2/3 A1/A2, 4/5 B1/B2
-    byte dirA = a > 0 ? 0x10 : a == 0 ? 0x11 : a > 1 ? 0x00 : 0x01;
-    byte dirB = b > 0 ? 0x10 : b == 0 ? 0x11 : b > 1 ? 0x00 : 0x01;
+    uint8_t dirA = a > 0 ? 0x10 : a == 0 ? 0x11 : a > 1 ? 0x00 : 0x01;
+    uint8_t dirB = b > 0 ? 0x10 : b == 0 ? 0x11 : b > 1 ? 0x00 : 0x01;
     io_data = (io_data & 0x03) | dirA << 2 | dirB << 4;
     io.write8(io_data);
     pwm.setPWM(0, 4095 * abs(a));
     pwm.setPWM(1, 4095 * abs(b));
   }
+
+	virtual void setLeftSpeed(real_t a) {}
+	virtual void setRightSpeed(real_t b) {}
 
   bool IO(int16_t id, bool value) {
     if (value == LOW)

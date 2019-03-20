@@ -43,7 +43,7 @@ public:
 										  //   means the output will increase when error is positive. REVERSE
 										  //   means the opposite.  it's very unlikely that this will be needed
 										  //   once it is set in the constructor.
-    void SetSampleTime(long);              // * sets the frequency, in Milliseconds, with which
+    void SetSampleTime(unsigned long);              // * sets the frequency, in Milliseconds, with which
                                           //   the PID calculation is performed.  default is 100
 
 
@@ -78,7 +78,7 @@ private:
 	unsigned long lastTime;
 	T ITerm, lastInput;
 
-	long SampleTime;
+	unsigned long SampleTime;
 	T outMin, outMax;
 	bool inAuto;
 };
@@ -176,7 +176,7 @@ void _PID<T>::SetTunings(T Kp, T Ki, T Kd)
  * sets the period, in Microseconds, at which the calculation is performed
  ******************************************************************************/
  template <class T>
-void _PID<T>::SetSampleTime(long NewSampleTime)
+void _PID<T>::SetSampleTime(unsigned long NewSampleTime)
 {
    if (NewSampleTime > 0)
    {
