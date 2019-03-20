@@ -50,11 +50,9 @@ public:
 		if (now <= last_tick) return;
 		//noInterrupts();
 		delta = calc_delta(last_tick, now);
-		if (delta > interval * 2) {
-			counter = 0;
-			last_now = now;
+		if (delta > interval) {
 			last_tick = now;
-			frequency = 0;
+			calc_frequency(counter, now, interval);
 		}
 		//interrupts();
 	}
