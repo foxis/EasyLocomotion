@@ -31,6 +31,8 @@ protected:
 	uint8_t addr;
 	TwoWire * wire;
 public:
+	TwoWireDevice(uint8_t addr)
+		:TwoWireDevice(&Wire, addr) {}
 	TwoWireDevice(TwoWire * wire, uint8_t addr) {
 		this->addr = addr;
 		this->wire = wire;
@@ -42,7 +44,7 @@ public:
 	}
 
 	virtual void read(uint8_t reg, uint8_t * out, size_t max_len) {
-		wire->write(reg);
+		if (reg != 0xFF) wire->write(reg);
 		wire->requestFrom(addr, max_len);
     while (max_len--)
       *(out++) = wire->read();

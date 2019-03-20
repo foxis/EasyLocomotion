@@ -42,6 +42,9 @@
 
 namespace Locomotion {
 
+//
+// PCA9685 is a 16x PWM I2C output
+//
 class PCA9685 : public TwoWireDevice {
 public:
 	PCA9685(TwoWire * wire)
