@@ -26,40 +26,41 @@
 
 namespace Locomotion {
 
+template <class T>
 class SoftwareFrequencyCounter {
-	unsigned long interval;
 	volatile unsigned long last_now;
-	volatile unsigned long last_tick;
-	volatile uint32_t counter;
+	volatile T last_counter;
+	volatile T counter;
 	volatile real_t frequency;
+	bool nointerrupts;
 
 public:
-	SoftwareFrequencyCounter(unsigned long interval_ms) {
-		interval = interval_ms * 1000;
+	SoftwareFrequencyCounter(bool nointerrupts = false) {
 		counter = 0;
+		last_counter = 0;
 		frequency = 0;
+		this->nointerrupts = nointerrupts;
 		last_now = micros();
 	}
 
-	real_t lastFrequency(unsigned long now) {
+	real_t lastFrequency() {
 		return frequency;
+	}
+	real_t lastCounter() {
+		return last_counter;
 	}
 
 	void update(unsigned long now) {
-		register unsigned long delta;
-		if (now <= last_tick) return;
-		//noInterrupts();
-		delta = calc_delta(last_tick, now);
-		if (delta > interval) {
-			last_tick = now;
-			calc_frequency(counter, now, interval);
-		}
-		//interrupts();
+		T cnt;
+		if (nointerrupts) noInterrupts();
+		cnt = counter;
+		if (nointerrupts) interrupts();
+
+		calc_frequency(cnt, now);
 	}
 
-	void count(unsigned long now) {
-		last_tick = now;
-		calc_frequency(++counter, now, interval);
+	inline void count(register char add) {
+		counter += add;
 	}
 
 private:
@@ -71,13 +72,11 @@ private:
 		}
 	}
 
-	inline void calc_frequency(uint32_t cnt, unsigned long now, unsigned long _interval) {
-		register unsigned long delta = calc_delta(last_now, now);
-		if (delta > _interval) {
-			last_now = now;
-			counter = 0;
-			frequency = ((cnt * 1000.0) / (real_t)delta) * 1000.0;
-		}
+	inline void calc_frequency(T cnt, unsigned long now) {
+		unsigned long delta = calc_delta(last_now, now);
+		frequency = (((cnt - last_counter) * 1000.0) / (real_t)delta) * 1000.0;
+		last_counter = cnt;
+		last_now = now;
 	}
 };
 
