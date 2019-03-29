@@ -44,10 +44,12 @@ public:
 	}
 
 	virtual void read(uint8_t reg, uint8_t * out, size_t max_len) {
+		wire->beginTransmission(addr);
 		if (reg != 0xFF) wire->write(reg);
 		wire->requestFrom(addr, max_len);
     while (max_len--)
       *(out++) = wire->read();
+		wire->endTransmission();
   }
 
   virtual void write(uint8_t reg, const uint8_t * data, size_t len) {
