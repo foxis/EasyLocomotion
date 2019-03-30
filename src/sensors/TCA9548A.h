@@ -33,7 +33,7 @@ namespace Locomotion {
 class TCA9548A : public TwoWireDevice {
 public:
 	TCA9548A(TwoWire * wire)
-		: TCA9548A(wire, TCA9548A_BASE_ADDRESS) { }
+		: TCA9548A(wire, 0) { }
   TCA9548A(TwoWire * wire, byte address_offset)
 		: TwoWireDevice(wire, TCA9548A_BASE_ADDRESS + address_offset) {
   }
