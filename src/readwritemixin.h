@@ -169,6 +169,53 @@ public:
 		}
 	}
 
+	void write_bulk_P(const calib_data8_t * data, size_t cnt) {
+		calib_data8_t tmp;
+		while (cnt) {
+			memcpy_P(&tmp, data, sizeof(tmp));
+			write8(data->reg, tmp.val);
+			++data;
+			--cnt;
+		}
+	}
+
+	void write_bulk_P(const calib_data16_t * data, size_t cnt, ByteOrder order = LSBFirst) {
+		calib_data16_t tmp;
+		while (cnt) {
+			memcpy_P(&tmp, data, sizeof(tmp));
+			write16(data->reg, data->val, order);
+			++data;
+			--cnt;
+		}
+	}
+
+	void write_bulk_P(const calib_data32_t * data, size_t cnt, ByteOrder order = LSBFirst) {
+		calib_data32_t tmp;
+		while (cnt) {
+			memcpy_P(&tmp, data, sizeof(tmp));
+			write32(data->reg, tmp.val, order);
+			++data;
+			--cnt;
+		}
+	}
+
+	void write_bulk_P(const calib_data_multiple_t * data, size_t cnt, ByteOrder order = LSBFirst) {
+		calib_data_multiple_t tmp;
+		while (cnt) {
+			memcpy_P(&tmp, data, sizeof(tmp));
+			switch (tmp.bits) {
+				case 8: write8(data->reg, tmp.val.val8); break;
+				case 16: write16(data->reg, tmp.val.val16, order); break;
+				case 24: write24(data->reg, tmp.val.val32, order); break;
+				case 32: write32(data->reg, tmp.val.val32, order); break;
+				default:
+					return;
+			}
+			++data;
+			--cnt;
+		}
+	}
+
 	bool wait_while(uint8_t reg, uint8_t mask, uint8_t result, unsigned long timeout_us) {
 		unsigned long now = micros();
 	  while ((read8(reg) & mask) == result)

@@ -36,8 +36,8 @@ public:
 	typedef struct {
 		bool timeout;
 		uint8_t status;
-		Reading_t * readings;
 		uint16_t num_readings;
+		Reading_t * readings;
 	} Measurement_t;
 
 	typedef struct {

@@ -98,7 +98,7 @@
 
 namespace Locomotion {
 
-const ReadWriteMixin::calib_data8_t VL53L0X_tuning_data[] = {
+const ReadWriteMixin::calib_data8_t VL53L0X_tuning_data[] PROGMEM = {
 	{0xFF, 0x01},
   {0x00, 0x00},
 

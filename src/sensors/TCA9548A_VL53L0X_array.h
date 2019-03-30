@@ -56,7 +56,7 @@ public:
 			mux[i].begin(init);
 		}
 		for (size_t i = 0; i < sensor_num; i++) {
-			set_channel(i);
+			if (init) set_channel(i);
 			sensors[i].begin(init);
 		}
   }
@@ -71,6 +71,15 @@ public:
 				return false;
 		}
 		return true;
+	}
+
+	void test(bool * results) {
+		for (size_t i = 0; i < mux_num; i++) {
+			*(results++) = mux[i].test();
+		}
+		for (size_t i = 0; i < sensor_num; i++) {
+			*(results++) = sensors[i].test();
+		}
 	}
 
 	void setIOTimeout(unsigned long io_timeout_us) {

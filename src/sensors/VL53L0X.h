@@ -415,7 +415,7 @@ bool VL53L0X::init(bool io_2v8)
   // -- VL53L0X_load_tuning_settings() begin
   // DefaultTuningSettings from vl53l0x_tuning.h
 
-	write_bulk(VL53L0X_tuning_data, sizeof(VL53L0X_tuning_data) / sizeof(VL53L0X_tuning_data[0]));
+	write_bulk_P(VL53L0X_tuning_data, sizeof(VL53L0X_tuning_data) / sizeof(VL53L0X_tuning_data[0]));
 
   // -- VL53L0X_load_tuning_settings() end
 

@@ -43,6 +43,18 @@ public:
 			wire->begin();
 	}
 
+	bool test() {
+		wire->beginTransmission(addr);
+		return !wire->endTransmission();
+	}
+
+	void discover(bool * results, size_t num_results, byte addr_start) {
+		for (size_t i = addr_start; i < (addr_start + num_results); i++)
+		{
+			*(results++) = test();
+		}
+	}
+
 	virtual void read(uint8_t reg, uint8_t * out, size_t max_len) {
 		wire->beginTransmission(addr);
 		if (reg != 0xFF) wire->write(reg);
