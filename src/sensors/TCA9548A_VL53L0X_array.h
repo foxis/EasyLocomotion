@@ -78,6 +78,7 @@ public:
 			*(results++) = mux[i].test();
 		}
 		for (size_t i = 0; i < sensor_num; i++) {
+			set_channel(i);
 			*(results++) = sensors[i].test();
 		}
 	}
@@ -136,7 +137,7 @@ public:
 
 private:
 	void set_channel(uint16_t index) {
-		byte mux_id = index >> 4;
+		byte mux_id = index >> 3;
 		byte channel_id = index % 8;
 
 		if (mux_id != last_mux_id)

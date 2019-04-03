@@ -43,25 +43,28 @@ public:
 			wire->begin();
 	}
 
-	bool test() {
+	virtual bool test(uint8_t addr=0xFF) {
+		if (addr == 0xFF)
+			addr = this->addr;
 		wire->beginTransmission(addr);
-		return !wire->endTransmission();
+		bool result = !wire->endTransmission();
+		return result;
 	}
 
-	void discover(bool * results, size_t num_results, byte addr_start) {
+	virtual void discover(bool * results, size_t num_results, byte addr_start) {
 		for (size_t i = addr_start; i < (addr_start + num_results); i++)
 		{
-			*(results++) = test();
+			*(results++) = test(i);
 		}
 	}
 
 	virtual void read(uint8_t reg, uint8_t * out, size_t max_len) {
 		wire->beginTransmission(addr);
 		if (reg != 0xFF) wire->write(reg);
+		wire->endTransmission();
 		wire->requestFrom(addr, max_len);
     while (max_len--)
       *(out++) = wire->read();
-		wire->endTransmission();
   }
 
   virtual void write(uint8_t reg, const uint8_t * data, size_t len) {

@@ -243,6 +243,16 @@ public:
 		return init(true);
   }
 
+	virtual bool test(uint8_t addr=0xFF) {
+		if (TwoWireDevice::test()) {
+			if (read8(0xC0) == 0xEE &&
+				  read8(0xC1) == 0xAA &&
+					read8(0xC2) == 0x10)
+					return true;
+		}
+		return false;
+	}
+
 	void setIOTimeout(unsigned long io_timeout_us) { io_timeout = io_timeout_us; }
 
 	virtual real_t getMaxDistance() { return 2000; }
@@ -445,7 +455,6 @@ bool VL53L0X::init(bool io_2v8)
   // VL53L0X_StaticInit() end
 
   // VL53L0X_PerformRefCalibration() begin (VL53L0X_perform_ref_calibration())
-
   return calibrate();
   // VL53L0X_PerformRefCalibration() end
 }
@@ -932,7 +941,8 @@ bool VL53L0X::startRangeSingle(void)
 bool VL53L0X::performSingleRefCalibration(uint8_t vhv_init_byte)
 {
 	write8(SYSRANGE_START, 0x01 | vhv_init_byte); // VL53L0X_REG_SYSRANGE_MODE_START_STOP
-	wait_while(RESULT_INTERRUPT_STATUS, 0x07, 0x00, io_timeout);
+	if (!wait_while(RESULT_INTERRUPT_STATUS, 0x07, 0x00, io_timeout))
+		return false;
 	write8(SYSTEM_INTERRUPT_CLEAR, 0x01);
 	write8(SYSRANGE_START, 0x00);
 
