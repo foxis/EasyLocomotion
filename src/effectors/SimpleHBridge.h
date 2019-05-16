@@ -49,6 +49,12 @@ public:
 		setRightSpeed(0);
 	}
 
+	virtual void setMotorsSpeed(real_t left, real_t right)
+	{
+		setLeftSpeed(left);
+		setRightSpeed(right);
+	}
+	
 	virtual void setLeftSpeed(real_t a)
 	{
 		setMotorSpeed(_AA, _AB, a);
