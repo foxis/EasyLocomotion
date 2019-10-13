@@ -10,21 +10,24 @@
 
 namespace Locomotion {
 
-typedef struct motorConfig_struct {
-	uint8_t limb_id;							//
-	uint8_t segment_id;						//
-	uint8_t expander_addr;				// expander i2c address where this motor is connected to
-	uint8_t addr;								  // motor id on the expander
+typedef struct servoConfig_struct {
+	uint8_t joint_id : 4;					//
+	uint8_t limb_id : 4;					//
+	uint8_t expander_addr : 4;				// expander i2c address where this motor is connected to
+	uint8_t addr : 4;						// motor id on the expander
 
 	// Servo motor position settings
-	uint16_t min;
-	uint16_t max;
-	uint16_t initial;
-} motorConfig_t;
+	// Servo signal is calculated using this formula:
+	// servo_value = x * k + c, where: 
+	//		x - calculated segment position
+	//		k - servo motor constant
+	//		b - servo motor bias
+	int16_t k;
+	int16_t b;
+} servoConfig_t;
 
-class Segment {
+class Joint {
 protected:
-	motorConfig_t config;
 	// positions range from 0 to 1
 	// these will be mapped to servo motor positions accordingly based on min/max
 public:
@@ -34,9 +37,8 @@ public:
 	real_t speed;
 
 public:
-	Segment(const motorConfig_t * config) {
-		this->config = *config;
-		start = current = end = config->initial;
+	Segment() {
+		start = current = end;
 		speed = 0;
 	}
 
@@ -53,7 +55,7 @@ protected:
 	std::vector<Segment> segments;
 
 public:
-	Limb(const motorConfig_t * configs, size_t count) {
+	Limb() {
 		// TODO setup segments
 	}
 
