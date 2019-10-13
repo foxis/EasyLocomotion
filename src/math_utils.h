@@ -396,6 +396,110 @@ public:
 	T x, y, z;
 };
 
+
+template <class T> class _BoundingSegment {
+	_BoundingSegment() : _BoundingSegment<T>(_BoundingSegment<T>::ZERO) {
+
+	}
+	_BoundingSegment(const _BoundingSegment<T>& v)
+	{
+		copy(v);
+	}
+	_BoundingSegment(T min, T max)
+	{
+		this->min = min;
+		this->max = max;
+	}
+
+	void copy(const _BoundingSegment<T>& v)
+	{
+		min = v.min;
+		max = v.max;
+	}
+
+	void length() const {
+		return fabs(this.max - this.min);
+	}
+
+	bool in(real_t val) const {
+		return val >= min && val <= max;
+	}
+
+	T min, max;
+};
+
+
+template <class T> class _BoundingArea {
+	_BoundingArea() : _BoundingArea<T>(_BoundingArea<T>::ZERO) {
+
+	}
+	_BoundingArea(const _BoundingArea<T>& v)
+	{
+		copy(v);
+	}
+	_BoundingArea(const _Vector2D<T> & min, const _Vector2D<T> & max)
+	{
+		this->min = min;
+		this->max = max;
+	}
+
+	void copy(const _BoundingArea<T>& v)
+	{
+		min = v.min;
+		max = v.max;
+	}
+
+	void area() const {
+		real_t a = max.x - min.x;
+		real_t b = max.y - min.y;
+		return a * b;
+	}
+
+	bool in(const _Vector2D<T> & val) const {
+		return val.x >= min.x && val.x <= max.x && val.y >= min.y && val.y <= max.y;
+	}
+
+	_Vector2D<T> min, max;
+};
+
+
+template <class T> class _BoundingVolume {
+	_BoundingVolume() : _BoundingVolume<T>(_BoundingVolume<T>::ZERO) {
+
+	}
+	_BoundingVolume(const _BoundingVolume<T>& v)
+	{
+		copy(v);
+	}
+	_BoundingVolume(const _Vector3D<T> & min, const _Vector3D<T> & max)
+	{
+		this->min = min;
+		this->max = max;
+	}
+
+	void copy(const _BoundingVolume<T>& v)
+	{
+		min = v.min;
+		max = v.max;
+	}
+
+	void volume() const {
+		real_t a = max.x - min.x;
+		real_t b = max.y - min.y;
+		real_t c = max.z - min.z;
+		return a * b * c;
+	}
+
+	bool in(const _Vector3D<T> & val) const {
+		return val.x >= min.x && val.x <= max.x 
+				&& val.y >= min.y && val.y <= max.y
+				&& val.z >= min.z && val.z <= max.z;
+	}
+
+	_Vector3D<T> min, max;
+};
+
+
 #ifndef __AVR__
 	typedef double real_t;
 #else
@@ -406,6 +510,9 @@ typedef _Vector2D<real_t> Vector2D;
 typedef _Vector3D<real_t> Vector3D;
 typedef _Quaternion<real_t> Quaternion;
 //typedef _Vector4D<common_type_t> Vector4D;
+typedef _BoundingSegment<real_t> BoundingSegment;
+typedef _BoundingArea<real_t> BoundingArea;
+typedef _BoundingVolume<real_t> BoundingVolume;
 
 #define EPSILON 0.001
 #define Vector2D_ZERO Vector2D(0,0)
