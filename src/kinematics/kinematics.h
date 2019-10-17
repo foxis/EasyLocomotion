@@ -17,12 +17,23 @@
  *
  */
 
-#if !defined(MATH_UTILS_H)
-#define MATH_UTILS_H
+#if !defined(KINEMATICS_H)
+#define KINEMATICS_H
 
-#include "math_utils/vectors.h"
-#include "math_utils/quaternion.h"
-#include "math_utils/bounds.h"
-#include "math_utils/matrices.h"
+#include "locomotion.h"
+
+namespace Locomotion {
+
+#if !defined(IK_SOLVER_CCD) && !defined(IK_SOLVER_JACOBIAN)
+#define IK_SOLVER_CCD
+#endif
+
+template<typename T> class KinematicsModel {
+public:
+    virtual _Vector3D<T> direct(const T * angle_arr) = 0;
+    virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) = 0;
+};
+
+};
 
 #endif
