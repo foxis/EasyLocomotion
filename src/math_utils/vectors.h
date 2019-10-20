@@ -57,7 +57,7 @@ public:
 			++p;
 		}
 	}
-	T magnitudeSqr() const {
+	inline T magnitudeSqr() const {
 		T sum = 0;
 		const T *p = this->data();
 		for (size_t i = 0; i < N; i++) {
@@ -66,7 +66,7 @@ public:
 		}
 		return sum;
 	}
-	T magnitude() const {
+	inline T magnitude() const {
 		return sqrt(magnitudeSqr());
 	}
 	void normal(_Vector<T, N> & dst) const {
@@ -463,16 +463,7 @@ public:
 
 typedef _Vector2D<real_t> Vector2D;
 typedef _Vector3D<real_t> Vector3D;
-
-#define EPSILON 0.001
-#define Vector2D_ZERO Vector2D(0,0)
-#define Vector3D_ZERO Vector3D(0,0,0)
-
-#define Vector2D_ONE_X Vector2D(1,0)
-#define Vector2D_ONE_Y Vector2D(0,1)
-#define Vector3D_ONE_X Vector3D(1,0,0)
-#define Vector3D_ONE_Y Vector3D(0,1,0)
-#define Vector3D_ONE_Z Vector3D(0,0,1)
+typedef _Vector4D<real_t> Vector4D;
 
 };
 

@@ -17,6 +17,7 @@
 void test_vectors3D_constructor1() {
     Vector3D v(1);
     TEST_ASSERT_EQUAL(v.x, v.y);
+    TEST_ASSERT_EQUAL(v.x, v.z);
     TEST_ASSERT_EQUAL(v.x, 1);
 }
 void test_vectors3D_constructor2() {

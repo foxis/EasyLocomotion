@@ -149,3 +149,20 @@ void test_vectors2D_reflection() {
     TEST_ASSERT_EQUAL(c.x, 4);
     TEST_ASSERT_EQUAL(c.y, 5);
 }
+
+void test_vectors2D_magnitude() {
+    Vector2D a(-2, 5);
+
+    TEST_ASSERT_EQUAL((int)a.magnitude(), 5);
+}
+
+void test_vectors2D_normal() {
+    Vector2D a(-2, 5);
+    Vector2D n;
+    a.normal(n);
+    TEST_ASSERT_EQUAL((int)(n.x * 100), 37);
+    TEST_ASSERT_EQUAL((int)(n.y * 100), 92);
+    a.normal();
+    TEST_ASSERT_EQUAL((int)(a.x * 100), 37);
+    TEST_ASSERT_EQUAL((int)(a.y * 100), 92);
+}

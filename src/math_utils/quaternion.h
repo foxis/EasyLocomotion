@@ -26,7 +26,23 @@ namespace Locomotion {
 
 template <class T> class _Quaternion : public _Vector4D<T> {
 public:
-	_Quaternion<T> getProduct(const _Vector<T, 4>& q) const {
+	_Quaternion() : _Vector4D<T>() {}
+	_Quaternion(T c) : _Vector4D<T>(c) {
+	}
+	_Quaternion(T x, T y, T z, T w) : _Vector4D<T>(x, y, z, w) {
+	}
+	_Quaternion(const T * arr) : _Vector4D<T>(arr) {
+	}
+	_Quaternion(const _Vector<T, 4> & v) : _Vector4D<T>(v) {
+	}
+	_Quaternion(const _Vector4D<T> & v) : _Vector4D<T>(v) {
+	}
+	_Quaternion(const _Vector<T, 3> & v) : _Vector4D<T>() {
+		this->container._copy(v.container, 3);
+		this->w = 1;
+	}
+
+	_Quaternion<T> product(const _Vector<T, 4>& q) const {
 		return _Quaternion<T>(
 			this->w*q.x + this->x*q.w + this->y*q.z - this->z*q.y,
 			this->w*q.y - this->x*q.z + this->y*q.w + this->z*q.x,
@@ -35,7 +51,7 @@ public:
 		);
 	}
 
-	_Quaternion<T> getConjugate() const {
+	_Quaternion<T> conjugate() const {
 		return _Quaternion<T>(-this->x, -this->y, -this->z, this->w);
 	}
 
@@ -68,8 +84,34 @@ public:
 		*this = tmp;
 	}
 
+	_Quaternion<T> operator + (const _Vector<T, 4> & v) const {
+		return _Quaternion<T>(this->x + v.data()[0], this->y + v.data()[1], this->z + v.data()[2], this->w + v.data()[3]);
+	}
+	_Quaternion<T> operator - (const _Vector<T, 4> & v) const {
+		return _Quaternion<T>(this->x - v.data()[0], this->y - v.data()[1], this->z - v.data()[2], this->w - v.data()[3]);
+	}
+	_Quaternion<T> operator * (T c) const {
+		return _Quaternion<T>(this->x * c, this->y * c, this->z * c, this->w * c);
+	}
+	_Quaternion<T> operator / (T c) const {
+		return _Quaternion<T>(this->x / c, this->y / c, this->z / c, this->w / c);
+	}
+
+	void operator *= (T c) {
+		this->x *= c;
+		this->y *= c;
+		this->z *= c;
+		this->w *= c;
+	}
+	void operator /= (T c) {
+		this->x /= c;
+		this->y /= c;
+		this->z /= c;
+		this->w /= c;
+	}
+
 #define	SLERP_EPSILON 1.0E-10
-	_Quaternion<T> slerp(const _Quaternion& b, T time, T spin)
+	_Quaternion<T> slerp(const _Quaternion<T>& b, T time, T spin)
 	{
 		_Quaternion<T> tmp;
 		T k1,k2;					// interpolation coefficions.
