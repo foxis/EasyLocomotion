@@ -35,6 +35,7 @@ using namespace Locomotion;
 
 
 #include "math_utils/test_math_utils_main.hpp"
+#include "kinematics/test_kinematics_main.hpp"
 
 #define _RUN_TEST(a) \
     clean_stack(); \
@@ -54,6 +55,7 @@ void setup() {
     UNITY_BEGIN();
 
     MATH_UTILS_TESTS;
+    KINEMATICS_TESTS;
 
     UNITY_END();
 
@@ -67,6 +69,7 @@ int main(int argc, char **argv) {
     UNITY_BEGIN();
 
     MATH_UTILS_TESTS;
+    KINEMATICS_TESTS;
 
     UNITY_END();
 }
