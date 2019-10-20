@@ -36,13 +36,13 @@ protected:
 public:
 	_Matrix(_DataContainerBase<T> &container) : container(container) {}
 	_Matrix(_DataContainerBase<T> &container, T c) : _Matrix(container) {
-		this->container.fill(c, N * M);
+		this->container._fill(c, N * M);
 	}
 	_Matrix(_DataContainerBase<T> &container, const T * data) : _Matrix(container) {
-		this->container.copy(data, N * M);
+		this->container._copy(data, N * M);
 	}
 	_Matrix(_DataContainerBase<T> &container, const _Matrix<T, N, M> & m) : _Matrix(container) {
-		this->container.copy(m.container, N * M);
+		this->container._copy(m.container, N * M);
 	}
 
     void eye() {
@@ -57,9 +57,22 @@ public:
         }
     }
 
-	virtual void operator = (const _Matrix<T, N, M> & m) {
-		this->container.copy(m.container, N * M);
+	void operator = (const _Matrix<T, N, M> & m) {
+		this->container._copy(m.container, N * M);
 	}
+
+    void operator += (const _Matrix<T, N, M> & m) {
+        add(m);
+    }
+    void operator -= (const _Matrix<T, N, M> & m) {
+        sub(m);
+    }
+    void operator *= (T c) {
+        mul(c);
+    }
+    void operator /= (T c) {
+        div(c);
+    }
 
     void add(const _Matrix<T, N, M> & m) {
         add(m, *this);
@@ -68,8 +81,8 @@ public:
         add(*this, m, dst);
     }
     static void add(const _Matrix<T, N, M> & src, const _Matrix<T, N, M> & m, _Matrix<T, N, M> & dst) {
-        T *p = src.data();
-        T *B = m.data();
+        const T *p = src.data();
+        const T *B = m.data();
         T *pd = dst.data();
         for (size_t i = 0; i < M * N; i++) {
             *pd = *p + *B;
@@ -86,8 +99,8 @@ public:
         sub(*this, m, dst);
     }
     static void sub(const _Matrix<T, N, M> & src, const _Matrix<T, N, M> & m, _Matrix<T, N, M> & dst) {
-        T *p = src.data();
-        T *B = m.data();
+        const T *p = src.data();
+        const T *B = m.data();
         T *pd = dst.data();
         for (size_t i = 0; i < M * N; i++) {
             *pd = *p - *B;
@@ -110,7 +123,7 @@ public:
     }
 
     static void mul(T c, const _Matrix<T, N, M> & src, _Matrix<T, N, M> & dst) {
-        T *p = src.data();
+        const T *p = src.data();
         T *pd = dst.data();
         for (size_t i = 0; i < N * M; i++) {
             *pd = *p * c;
@@ -132,7 +145,7 @@ public:
     }
 
     static void div(T c, const _Matrix<T, N, M> & src, _Matrix<T, N, M> & dst) {
-        T *p = src.data();
+        const T *p = src.data();
         T *pd = dst.data();
         for (size_t i = 0; i < N * M; i++) {
             *pd = *p / c;
@@ -141,8 +154,8 @@ public:
         }
     }
 
-    template<int K>
-    void mul(const _Matrix<T, N, K> & m, _Matrix<T, M, K> & dst) const {
+    template<size_t K>
+    void mul_mat(const _Matrix<T, N, K> & m, _Matrix<T, M, K> & dst) const {
         T *pd = dst.data();
 		
         for (size_t j = 0; j < N; j++) {
@@ -170,7 +183,7 @@ public:
             pv = v.data();
 			for (size_t j = 0; j < M; j++) {
 				acc += *pv * *src;
-				++v;
+				++pv;
 				++src;
 			}
 			*pd = acc;
@@ -230,7 +243,7 @@ public:
     /// 
     virtual T det() const {
         static_assert(N == M, "Must be square matrix");
-        _DataContainerBase<T> * tmp_cont = container.clone();
+        _DataContainerBase<T> * tmp_cont = container._clone();
         _Matrix<T, N, N> tmp(*tmp_cont);
 
         T ratio, det = 1;
@@ -267,10 +280,15 @@ public:
     // SVD 'Singular Value Decomposition'
     // W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery
     // 'Numerical Recipes in C'
-    void svd(_Vector<T, M> & W, _Matrix<T, M, M> & V, _Vector<T, M> & Rv1) {
+    // A = UWVT
+    // U 
+    // W - diagonal matrix (vector of diagonal elements)
+    // Rv1 is a vector to store temporary values
+    void svd(_Matrix<T, N, M> & U, _Vector<T, M> & W, _Matrix<T, M, M> & V, _Vector<T, M> & Rv1) const {
         bool flag;
         size_t i, its, j, jj, k, l, nm;
         T anorm, c, f, g, h, s, scale, x, y, z;
+        U = *this;
 
         g = scale = anorm = 0.0;  // Householder reduction to bidiagonal form
         for(i = 0; i < M; i++)
@@ -281,29 +299,29 @@ public:
             if(i < N)
             {
                 for(k = i; k < N; k++) 
-                    scale += fabs(this->val(k, i));
+                    scale += fabs(U.val(k, i));
 
                 if(scale)
                 {
                     for(k = i; k < N; k++)
                     {
-                        *this->data(k, i) /= scale;
-                        s += this->val(k, i) * this->val(k, i);
+                        *U.data(k, i) /= scale;
+                        s += U.val(k, i) * U.val(k, i);
                     }
-                    f = this->val(i, i);
+                    f = U.val(i, i);
                     g = -SIGN(sqrt(s), f);
                     h = f * g - s;
-                    *this->data(i, i) = f - g;
+                    *U.data(i, i) = f - g;
                     for(j = l; j < M; j++)
                     {
                         for(s = 0.0, k = i; k < N; k++) 
-                            s += this->val(k, i) * this->val(k, j);
+                            s += U.val(k, i) * U.val(k, j);
                         f = s / h;
                         for(k = i; k < N; k++) 
-                            *this->data(k, j) += f * this->val(k, i);
+                            *U.data(k, j) += f * U.val(k, i);
                     }
                     for(k = i; k < N; k++) 
-                        *this->data(k, i) *= scale;
+                        *U.data(k, i) *= scale;
                 }
             }
             W.data()[i] = scale * g;
@@ -311,30 +329,30 @@ public:
             if(i < N && i != (M - 1))
             {
                 for(k = l; k < M; k++) 
-                    scale += fabs(this->val(i, k));
+                    scale += fabs(U.val(i, k));
                 if(scale)
                 {
                     for(k = l; k < M; k++)
                     {
-                        *this->data(i, k) /= scale;
-                        s += this->val(i, k) * this->val(i, k);
+                        *U.data(i, k) /= scale;
+                        s += U.val(i, k) * U.val(i, k);
                     }
-                    f = this->val(i, l);
+                    f = U.val(i, l);
                     g = -SIGN(sqrt(s), f);
                     h = f * g - s;
-                    *this->data(i, l) = f - g;
+                    *U.data(i, l) = f - g;
                     for(k = l; k < M; k++) 
-                        Rv1.data()[k] = this->val(i, k) / h;
+                        Rv1.data()[k] = U.val(i, k) / h;
 
                     for(j = l; j < N; j++)
                     {
                         for(s = 0.0, k = l; k < M; k++) 
-                            s += this->val(j, k) * this->val(i, k);
+                            s += U.val(j, k) * U.val(i, k);
                         for(k = l; k < M; k++) 
-                            *this->data(j, k) += s * Rv1.data()[k];
+                            *U.data(j, k) += s * Rv1.data()[k];
                     }
                     for(k = l; k < M; k++) 
-                        *this->data(i, k) *= scale;
+                        *U.data(i, k) *= scale;
                 }
             }
             anorm = FMAX(anorm, (fabs(W.data()[i]) + fabs(Rv1.data()[i])));
@@ -347,11 +365,11 @@ public:
                 if(g)
                 {
                     for(j = l; j < M; j++)
-                        *V.data(j, i) = (this->val(i, j) / this->val(i, l)) / g;
+                        *V.data(j, i) = (U.val(i, j) / U.val(i, l)) / g;
                     for(j = l; j < M; j++)
                     {
                         for(s = 0.0, k = l; k < M; k++) 
-                            s += this->val(i, k) * V.val(k, j);
+                            s += U.val(i, k) * V.val(k, j);
                         for(k = l; k < M; k++) 
                             *V.data(k, j) += s * V.val(k, i);
                     }
@@ -369,25 +387,25 @@ public:
             l = i + 1;                                 // transformations
             g = W.data()[i];
             for(j = l; j < M; j++) 
-                *this->data(i, j) = 0.0;
+                *U.data(i, j) = 0.0;
             if(g)
             {
                 g = 1.0 / g;
                 for(j = l; j < M; j++)
                 {
                     for(s = 0.0, k = l; k < N; k++) 
-                        s += this->val(k, i) * this->val(k, j);
-                    f = (s / this->val(i, i)) * g;
+                        s += U.val(k, i) * U.val(k, j);
+                    f = (s / U.val(i, i)) * g;
                     for(k = i; k < N; k++) 
-                        *this->data(k, j) += f * this->val(k, i);
+                        *U.data(k, j) += f * U.val(k, i);
                 }
                 for(j = i; j < N; j++) 
-                    *this->data(j, i) *= g;
+                    *U.data(j, i) *= g;
             }
             else 
                 for(j = i; j < N; j++) 
-                    *this->data(j, i) = 0.0;
-            ++(*this->data(i, i));
+                    *U.data(j, i) = 0.0;
+            ++(*U.data(i, i));
         }
 
         for(k = M - 1; k >= 0; k--)
@@ -423,10 +441,10 @@ public:
                         s = -f * h;
                         for(j = 0; j < N; j++)
                         {
-                            y = this->val(j, nm);
-                            z = this->val(j, i);
-                            *this->data(j, nm) = y * c + z * s;
-                            *this->data(j, i) = z * c - y * s;
+                            y = U.val(j, nm);
+                            z = U.val(j, i);
+                            *U.data(j, nm) = y * c + z * s;
+                            *U.data(j, i) = z * c - y * s;
                         }
                     }
                 }
@@ -487,10 +505,10 @@ public:
                     x = c * y - s * g;
                     for(jj = 0; jj < N; jj++)
                     {
-                        y = this->val(jj, j);
-                        z = this->val(jj, i);
-                        *this->data(jj, j) = y * c + z * s;
-                        *this->data(jj, i) = z * c - y * s;
+                        y = U.val(jj, j);
+                        z = U.val(jj, i);
+                        *U.data(jj, j) = y * c + z * s;
+                        *U.data(jj, i) = z * c - y * s;
                     }
                 }
                 Rv1.data()[l] = 0.0;
@@ -499,6 +517,37 @@ public:
             }
         }
         return true;
+    }
+
+    ///
+    /// LU decomposition into two triangular matrices
+    /// NOTE: Assume, that l&u matrices are set to zero
+    void lu(_Matrix<T, N, N> & l, _Matrix<T, N, N> & u) const {
+        size_t i, j, k;
+        static_assert(N == M, "Must be square matrix");
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < N; j++) {
+                if (j >= i) {
+                    *l.data(j, i) = this->val(j, i);
+                    for (k = 0; k < i; k++) {
+                        *l.data(j, i) = l.val(j, i) - l.val(j, k) * u.val(k, i);
+                    }
+                } else {
+                    *l.data(j, i) = 0;
+                }
+            }
+            for (j = 0; j < N; j++) {
+                if (j < i)
+                    *u.data(i, j) = 0;
+                else if (j == i)
+                    *u.data(i, j) = 1;
+                else {
+                    *u.data(i, j) = this->val(i, j) / l.val(i, i);
+                    for (k = 0; k < i; k++)
+                        *u.data(i, j) = u.val(i, j) - ((l.val(i, k) * u.val(k, j)) / l.val(i, i));
+                }
+            }
+        }
     }
 
 private:
@@ -518,14 +567,18 @@ public:
 	inline const T* data() const { return container._data(); }
 
 	inline T val(size_t row, size_t col) const { return *data(row, col); }
-	inline T* data(size_t row, size_t col) { return data() + col + row * M; }
-	inline const T* data(size_t row, size_t col) const { return data() + col + row * M; }
+	inline T* data(size_t row, size_t col) { return this->row(row) + col; }
+	inline const T* data(size_t row, size_t col) const { return this->row(row) + col; }
+	inline T* row(size_t row) { return data() + row * M; }
+	inline const T* row(size_t row) const { return data() + row * M; }
 };
 
 template <class T> class _Matrix2x2 : public _Matrix<T, 2, 2>, private _DataContainerStatic<T, 4> {
 public:
 	_Matrix2x2() : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {}
-	_Matrix2x2(T c) : _Matrix<T, 2, 2>(*this, c) {}
+	_Matrix2x2(T c) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
+        this->_fill(c, 4);
+    }
 	_Matrix2x2(T a, T b, T c, T d) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
         T * p = this->data(); 
 		*(p++) = a;
@@ -533,11 +586,49 @@ public:
 		*(p++) = c;
 		*(p++) = d;
 	}
-	_Matrix2x2(const T * data) : _Matrix<T, 2, 2>(*this, data) {}
-	_Matrix2x2(const _Matrix<T, 2, 2> & v) : _Matrix<T, 2, 2>(*this, v) {}
+	_Matrix2x2(const T * data) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
+        this->_copy(data, 4);
+    }
+	_Matrix2x2(const _Matrix<T, 2, 2> & m) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, 4);
+    }
+	_Matrix2x2(const _Matrix2x2<T> & m) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, 4);
+    }
+
+    _Matrix2x2 operator + (const _Matrix<T, 2, 2> & m) const {
+        _Matrix2x2 tmp(*this);
+        tmp += m;
+        return tmp;
+    }
+    _Matrix2x2 operator - (const _Matrix<T, 2, 2> & m) const {
+        _Matrix2x2 tmp(*this);
+        tmp -= m;
+        return tmp;
+    }
+    _Matrix2x2 operator * (const _Matrix<T, 2, 2> & m) const {
+        _Matrix2x2 tmp;
+        this->mul_mat(m, tmp);
+        return tmp;
+    }
+    _Vector2D<T> operator * (const _Vector<T, 2> & v) const {
+        _Vector2D<T> tmp;
+        this->mul(v, tmp);
+        return tmp;
+    }
+    _Matrix2x2 operator * (const T c) const {
+        _Matrix2x2 tmp(*this);
+        tmp *= c;
+        return tmp;
+    }
+    _Matrix2x2 operator / (const T c) const {
+        _Matrix2x2 tmp(*this);
+        tmp /= c;
+        return tmp;
+    }
 
 	virtual T det() const {
-        T * p = this->data(); 
+        const T * p = this->data(); 
         return p[0] * p[3] - p[1] * p[2];
     }
 
@@ -559,7 +650,9 @@ public:
 template <class T> class _Matrix3x3 : public _Matrix<T, 3, 3>, private _DataContainerStatic<T, 9> {
 public:
 	_Matrix3x3() : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {}
-	_Matrix3x3(T c) : _Matrix<T, 3, 3>(*this, c) {}
+	_Matrix3x3(T c) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
+        this->_fill(c, 9);
+    }
 	_Matrix3x3(T a, T b, T c, T d, T e, T f, T g, T h, T i) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
         T * p = this->data(); 
 		*(p++) = a;
@@ -572,8 +665,46 @@ public:
 		*(p++) = h;
 		*(p++) = i;
 	}
-	_Matrix3x3(const T * data) : _Matrix<T, 3, 3>(*this, data) {}
-	_Matrix3x3(const _Matrix<T, 3, 3> & v) : _Matrix<T, 3, 3>(*this, v) {}
+	_Matrix3x3(const T * data) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
+        this->_copy(data, 9);
+    }
+	_Matrix3x3(const _Matrix<T, 3, 3> & m) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, 9);
+    }
+	_Matrix3x3(const _Matrix3x3<T> & m) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, 9);
+    }
+
+    _Matrix3x3 operator + (const _Matrix<T, 3, 3> & m) const {
+        _Matrix3x3 tmp(*this);
+        tmp += m;
+        return tmp;
+    }
+    _Matrix3x3 operator - (const _Matrix<T, 3, 3> & m) const {
+        _Matrix3x3 tmp(*this);
+        tmp -= m;
+        return tmp;
+    }
+    _Matrix3x3 operator * (const _Matrix<T, 3, 3> & m) const {
+        _Matrix3x3 tmp;
+        this->mul_mat(m, tmp);
+        return tmp;
+    }
+    _Vector3D<T> operator * (const _Vector<T, 3> & v) const {
+        _Vector3D<T> tmp;
+        this->mul(v, tmp);
+        return tmp;
+    }
+    _Matrix3x3 operator * (const T c) const {
+        _Matrix3x3 tmp(*this);
+        tmp *= c;
+        return tmp;
+    }
+    _Matrix3x3 operator / (const T c) const {
+        _Matrix3x3 tmp(*this);
+        tmp /= c;
+        return tmp;
+    }
 
 	virtual T det() const { 
         const T * p = this->data();
@@ -610,7 +741,9 @@ public:
 template <class T> class _Matrix4x4 : public _Matrix<T, 4, 4>, private _DataContainerStatic<T, 16> {
 public:
 	_Matrix4x4() : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {}
-	_Matrix4x4(T c) : _Matrix<T, 4, 4>(*this, c) {}
+	_Matrix4x4(T c) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
+        this->_fill(c, 16);
+    }
 	_Matrix4x4(T a, T b, T c, T d, T e, T f, T g, T h, T i) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
         T * p = this->data(); 
 		*(p++) = a;
@@ -623,8 +756,46 @@ public:
 		*(p++) = h;
 		*(p++) = i;
 	}
-	_Matrix4x4(const T * data) : _Matrix<T, 4, 4>(*this, data) {}
-	_Matrix4x4(const _Matrix<T, 4, 4> & v) : _Matrix<T, 4, 4>(*this, v) {}
+	_Matrix4x4(const T * data) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
+        this->_copy(data, 16);
+    }
+	_Matrix4x4(const _Matrix<T, 4, 4> & m) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, 16);
+    }
+	_Matrix4x4(const _Matrix4x4<T> & m) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, 16);
+    }
+
+    _Matrix4x4 operator + (const _Matrix<T, 4, 4> & m) const {
+        _Matrix4x4 tmp(*this);
+        tmp += m;
+        return tmp;
+    }
+    _Matrix4x4 operator - (const _Matrix<T, 4, 4> & m) const {
+        _Matrix4x4 tmp(*this);
+        tmp -= m;
+        return tmp;
+    }
+    _Matrix4x4 operator * (const _Matrix<T, 4, 4> & m) const {
+        _Matrix4x4 tmp;
+        this->mul_mat(m, tmp);
+        return tmp;
+    }
+    _Vector4D<T> operator * (const _Vector<T, 4> & v) const {
+        _Vector4D<T> tmp;
+        this->mul(v, tmp);
+        return tmp;
+    }
+    _Matrix4x4 operator * (const T c) const {
+        _Matrix4x4 tmp(*this);
+        tmp *= c;
+        return tmp;
+    }
+    _Matrix4x4 operator / (const T c) const {
+        _Matrix4x4 tmp(*this);
+        tmp /= c;
+        return tmp;
+    }
 
 	virtual T det() const { 
         const T * P = this->data();

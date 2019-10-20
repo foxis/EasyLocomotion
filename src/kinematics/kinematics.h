@@ -28,7 +28,7 @@ namespace Locomotion {
 #define IK_SOLVER_CCD
 #endif
 
-template<typename T> class KinematicsModel {
+template<typename T> class _KinematicsModel {
 public:
     virtual _Vector3D<T> direct(const T * angle_arr) = 0;
     virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) = 0;

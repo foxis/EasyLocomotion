@@ -67,18 +67,18 @@ public:
 	virtual T* _data() = 0;
 	virtual const T* _data() const = 0;
 
-    void fill(T c, size_t N) {
-		T * p = this->_data();
+    void _fill(T c, size_t N) {
+		T * p = _data();
 		for (size_t i = 0; i < N; i++)
 			*(p++) = c;
 	}
-	void copy(const T * data, size_t N) {
-		memcpy(this->_data(), data, sizeof(T) * N);
+	virtual void _copy(const T * arr, size_t N) {
+		memcpy(_data(), arr, sizeof(T) * N);
 	}
-	virtual void copy(const _DataContainerBase<T> & c, size_t N) {
-		copy(c._data(), N);
+	virtual void _copy(const _DataContainerBase<T> & c, size_t N) {
+		_copy(c._data(), N);
 	}
-    virtual _DataContainerBase<T> * clone() const = 0;
+    virtual _DataContainerBase<T> * _clone() const = 0;
 };
 
 template<typename T, size_t SIZE> class _DataContainerStatic : public _DataContainerBase<T> {
@@ -86,9 +86,9 @@ template<typename T, size_t SIZE> class _DataContainerStatic : public _DataConta
 public:
 	virtual T* _data() { return arr; }
 	virtual const T* _data() const { return arr; }
-    virtual _DataContainerBase<T> * clone() const {
+    virtual _DataContainerBase<T> * _clone() const {
         _DataContainerBase<T> * tmp = new _DataContainerStatic<T, SIZE>();
-        tmp->copy(this->arr, SIZE);
+        tmp->_copy(this->arr, SIZE);
         return tmp;
     }
 };
@@ -104,9 +104,9 @@ public:
     }
 	virtual T* _data() { return ptr; }
 	virtual const T* _data() const { return ptr; }
-    virtual _DataContainerBase<T> * clone() const {
+    virtual _DataContainerBase<T> * _clone() const {
         _DataContainerBase<T> * tmp = new _DataContainerDynamic<T, SIZE>();
-        tmp->copy(this->ptr, SIZE);
+        tmp->_copy(this->ptr, SIZE);
         return tmp;
     }
 };
@@ -123,9 +123,9 @@ public:
     }
 	virtual T* _data() { return ptr; }
 	virtual const T* _data() const { return ptr; }
-    virtual _DataContainerBase<T> * clone() const {
+    virtual _DataContainerBase<T> * _clone() const {
         _DataContainerBase<T> * tmp = new _DataContainerFromPtr<T, SIZE, owns>(new T[SIZE]);
-        tmp->copy(this->ptr, SIZE);
+        tmp->_copy(this->ptr, SIZE);
         return tmp;
     }
 };

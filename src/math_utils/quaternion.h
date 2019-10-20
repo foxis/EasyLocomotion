@@ -24,88 +24,48 @@
 
 namespace Locomotion {
 
-template <class T> class _Quaternion : public _Vector<T, 4>, private _DataContainerBase<T> {
-	virtual T* _data() { return &x; }
-	virtual const T* _data() const { return &x; }
-    virtual _DataContainerBase<T> * clone() const {
-        _DataContainerBase<T> * tmp = new _DataContainerStatic<T, 4>();
-        tmp->copy(&this->x, 4);
-        return tmp;
-    }
+template <class T> class _Quaternion : public _Vector4D<T> {
 public:
-	_Quaternion() : _Quaternion(0, 0, 0, 1) {}
-	_Quaternion(T c) : _Vector<T, 4>(*this, c) {}
-	_Quaternion(T x, T y, T z, T w) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
-		this->x = x;
-		this->y = y;
-		this->z = z;
-		this->w = w;
-	}
-	_Quaternion(const T * data) : _Vector<T, 4>(*this, data) {}
-	_Quaternion(const _Vector<T, 4> & v) : _Vector<T, 4>(*this, v) {}
-
 	_Quaternion<T> getProduct(const _Vector<T, 4>& q) const {
 		return _Quaternion<T>(
-			w*q.x + x*q.w + y*q.z - z*q.y,
-			w*q.y - x*q.z + y*q.w + z*q.x,
-			w*q.z + x*q.y - y*q.x + z*q.w,
-			w*q.w - x*q.x - y*q.y - z*q.z
+			this->w*q.x + this->x*q.w + this->y*q.z - this->z*q.y,
+			this->w*q.y - this->x*q.z + this->y*q.w + this->z*q.x,
+			this->w*q.z + this->x*q.y - this->y*q.x + this->z*q.w,
+			this->w*q.w - this->x*q.x - this->y*q.y - this->z*q.z
 		);
 	}
 
 	_Quaternion<T> getConjugate() const {
-		return _Quaternion<T>(-x, -y, -z, w);
-	}
-
-	_Quaternion<T> getNormalized() const {
-		_Quaternion<T> r(x, y, z, w);
-		r.normalize();
-		return r;
+		return _Quaternion<T>(-this->x, -this->y, -this->z, this->w);
 	}
 
 	T getRoll() {
-		return atan2f(w*x + y*z, 0.5f - x*x - y*y);
+		return atan2f(this->w*this->x + this->y*this->z, 0.5f - this->x*this->x - this->y*this->y);
 	}
 	T getPitch() {
-		return asinf(-2.0f * (x*z - w*y));
+		return asinf(-2.0f * (this->x*this->z - this->w*this->y));
 	}
 	T getYaw() {
-		return atan2f(x*y + w*z, 0.5f - y*y - z*z);
+		return atan2f(this->x*this->y + this->w*this->z, 0.5f - this->y*this->y - this->z*this->z);
 	}
-	void mul(const _Quaternion<T>& b)
+	virtual void mul(const _Quaternion<T>& a, const _Quaternion<T>& b, _Quaternion<T> & q) const
 	{
-		_Quaternion<T> q;
-        q.x = w*b.x + x*b.w + y*b.z - z*b.y;
-        q.y = w*b.y - x*b.z + y*b.w + z*b.x;
-        q.z = w*b.z + x*b.y - y*b.x + z*b.w;
-        q.w = w*b.w - x*b.x - y*b.y - z*b.z;
-		*this = q;
-	}
-	_Quaternion<T> mul(const _Quaternion<T>& b) const
-	{
-		_Quaternion<T> tmp(*this);
-		tmp.mul(b);
-		return tmp;
-	}
-	_Quaternion<T> operator*(const _Quaternion<T>& b) const
-	{
-		_Quaternion<T> tmp(*this);
-		tmp.mul(b);
-		return tmp;
-	}
-	_Quaternion<T>& operator*=(const _Quaternion<T>& b)
-	{
-		mul(b);
-		return *this;
+        q.x = a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y;
+        q.y = a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x;
+        q.z = a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w;
+        q.w = a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z;
 	}
 
-	_Quaternion<T> linear_interpolate(const _Quaternion<T>& v, T t) const
-	{
-		return _Quaternion<T>(
-			x + (v.x - x) * t,
-			y + (v.y - y) * t,
-			z + (v.z - z) * t,
-			w + (v.w - w) * t);
+	_Quaternion<T> operator * (const _Vector<T, 4> &b) const {
+		_Quaternion<T> tmp;
+		this->mul(*this, b, tmp);
+		return tmp;
+	}
+
+	void operator *= (const _Vector<T, 4> &b) const {
+		_Quaternion<T> tmp;
+		this->mul(*this, b, tmp);
+		*this = tmp;
 	}
 
 #define	SLERP_EPSILON 1.0E-10
@@ -142,10 +102,10 @@ public:
 		}
 		k2 *= flipk2;
 
-		tmp.x = k1*x + k2*b.x;
-		tmp.y = k1*y + k2*b.y;
-		tmp.z = k1*z + k2*b.z;
-		tmp.w = k1*w + k2*b.w;
+		tmp.x = k1*this->x + k2*b.x;
+		tmp.y = k1*this->y + k2*b.y;
+		tmp.z = k1*this->z + k2*b.z;
+		tmp.w = k1*this->w + k2*b.w;
 		return tmp;
 	}
 
@@ -170,15 +130,13 @@ public:
 			k2 = sin( time*angleSpin ) / sin_a;
 		}
 
-		tmp.x = k1*x + k2*b.x;
-		tmp.y = k1*y + k2*b.y;
-		tmp.z = k1*z + k2*b.z;
-		tmp.w = k1*w + k2*b.w;
+		tmp.x = k1*this->x + k2*b.x;
+		tmp.y = k1*this->y + k2*b.y;
+		tmp.z = k1*this->z + k2*b.z;
+		tmp.w = k1*this->w + k2*b.w;
 		return tmp;
 	}
 #undef SLERP_EPSILON
-
-	T x, y, z, w;
 };
 
 typedef _Quaternion<real_t> Quaternion;

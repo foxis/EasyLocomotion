@@ -25,20 +25,22 @@
 
 namespace Locomotion {
 
-typedef struct PlanarJoint_struct {
-    BoundingSegment constraints;
-    real_t length;
-} PlanarJoint_t;
+template<T>
+typedef struct _PlanarJoint_struct {
+    _ConstraintSegment<T> constraints;
+    T length;
+} _PlanarJoint_t;
 
-template<typename T, size_t DOF> class PlanarKinematics : public KinematicsModel<T> {
-private:
-    const PlanarJoint_t * config;
+template<typename T, size_t DOF> class _PlanarKinematics : public _KinematicsModel<T> {
+public:
+    const _PlanarJoint_t<T> * config;
+    const _ConstraintVolume<T> working_space
 
 public:
-    PlanarKinematics(const PlanarJoint_t * joints)
-        : config(joints) {
+    _PlanarKinematics(const PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
+        : config(joints), working_space(working_space) {
     }
-    ~PlanarKinematics() {
+    ~_PlanarKinematics() {
     }
 
     /// Performs planar forward kinematics 

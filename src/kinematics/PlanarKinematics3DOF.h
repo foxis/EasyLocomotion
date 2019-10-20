@@ -22,15 +22,16 @@
 
 namespace Locomotion {
 
-template<typename T> class PlanarKinematics<T, 3> : public KinematicsModel<T> {
-private:
-    const PlanarJoint_t * config;
+template<typename T> class _PlanarKinematics<T, 3> : public _KinematicsModel<T> {
+public:
+    const PlanarJoint_t<T> * config;
+    const _ConstraintVolume<T> working_space
 
 public:
-    PlanarKinematics(const PlanarJoint_t * joints)
-        : config(joints) {
+    _PlanarKinematics(const PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
+        : config(joints), working_space(working_space) {
     }
-    ~PlanarKinematics() {
+    ~_PlanarKinematics() {
     }
 
     /// Performs planar forward kinematics 

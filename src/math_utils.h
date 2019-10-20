@@ -22,7 +22,7 @@
 
 #include "math_utils/vectors.h"
 #include "math_utils/quaternion.h"
-#include "math_utils/bounds.h"
+#include "math_utils/constraints.h"
 #include "math_utils/matrices.h"
 
 #endif

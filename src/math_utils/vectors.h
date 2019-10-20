@@ -33,19 +33,21 @@ template <typename T, size_t N> class _Vector {
 protected:
 	_DataContainerBase<T> &container;
 public:
-	_Vector(_DataContainerBase<T> &container) : container(container) {}
-	_Vector(_DataContainerBase<T> &container, T c) : _Vector(container) {
-		this->container.fill(c, N);
+	_Vector(_DataContainerBase<T> &cont) : container(cont) 
+	{
 	}
-	_Vector(_DataContainerBase<T> &container, const T * data) : _Vector(container) {
-		this->container.copy(data, N);
+	_Vector(_DataContainerBase<T> &cont, T c) : _Vector(cont) {
+		this->container._fill(c, N);
 	}
-	_Vector(_DataContainerBase<T> &container, const _Vector<T, N> & v) : _Vector(container) {
-		this->container.copy(v.container, N);
+	_Vector(_DataContainerBase<T> &cont, const T * arr) : _Vector(cont) {
+		this->container._copy(arr, N);
+	}
+	_Vector(_DataContainerBase<T> &cont, const _Vector<T, N> & v) : _Vector(cont) {
+		this->container._copy(v.container, N);
 	}
 
 	void operator = (const _Vector<T, N> & v) {
-		container.copy(v.container, N);
+		this->container._copy(v.container, N);
 	}
 	/// will call a function on each element. basically doing Ai = f(Ai)
 	void map(std::function<T (size_t idx, T val, void * params)> setter, void * params = NULL) {
@@ -68,16 +70,7 @@ public:
 		return sqrt(magnitudeSqr());
 	}
 	void normal(_Vector<T, N> & dst) const {
-		T  magnitude = magnitude();
-		const T *p = this->data();
-		const T *p1 = dst->data();
-		for (size_t i = 0; i < N; i++) {
-			*p1 = *p / magnitude;
-			++p;
-			++p1;
-		}
-
-		dst.copy(*this);
+		dst = *this;
 		dst.normal();
 	}
 	void normal() {
@@ -100,7 +93,7 @@ public:
 	void add(const _Vector<T, N> & v) {
 		add(*this, v);
 	}
-	static void add(_Vector<T, N> & dst, const _Vector<T, N> & v) {
+	virtual void add(_Vector<T, N> & dst, const _Vector<T, N> & v) const {
 		T *p = dst.data();
 		const T *p1 = v.data();
 		for (size_t i = 0; i < N; i++) {
@@ -113,11 +106,11 @@ public:
 	void sub(const _Vector<T, N> & v) {
 		sub(*this, v);
 	}
-	static void sub(_Vector<T, N> & dst, const _Vector<T, N> & v) {
+	virtual void sub(_Vector<T, N> & dst, const _Vector<T, N> & v) const {
 		T *p = dst.data();
 		const T *p1 = v.data();
 		for (size_t i = 0; i < N; i++) {
-			*p += *p1;
+			*p -= *p1;
 			++p1;
 			++p;
 		}
@@ -126,7 +119,7 @@ public:
 	void mul(T c) {
 		mul(*this, c);
 	}
-	static void mul(_Vector<T, N> & dst, T c) {
+	virtual void mul(_Vector<T, N> & dst, T c) const {
 		T *p = dst.data();
 		for (size_t i = 0; i < N; i++) {
 			*p *= c;
@@ -137,7 +130,7 @@ public:
 	void div(T c) {
 		div(*this, c);
 	}
-	static void div(_Vector<T, N> & dst, T c) {
+	virtual void div(_Vector<T, N> & dst, T c) const {
 		T *p = dst.data();
 		for (size_t i = 0; i < N; i++) {
 			*p /= c;
@@ -158,19 +151,75 @@ public:
 		return sum;
 	}
 
+	template<size_t KERNEL_SIZE, size_t OUTPUT_SIZE>
+	void convolve(const _Vector<T, KERNEL_SIZE> & kernel, _Vector<T, OUTPUT_SIZE> & dst) const {
+        static_assert(KERNEL_SIZE <= N, "Kernel size must be less or equal to the vector size");
+        static_assert(OUTPUT_SIZE <= N, "Output size must be less or equal to the vector size");
+        static_assert(OUTPUT_SIZE >= N - KERNEL_SIZE + 1, "Output size must be greather than vector size - kernel size");
+        static_assert((OUTPUT_SIZE - (N - KERNEL_SIZE + 1)) % 2 == 0, "Padding must be equal on both sides");
+		T * out = dst.data();
+		const size_t PADDING = (OUTPUT_SIZE - (N - KERNEL_SIZE + 1)) / 2;
+
+		// calculate head
+		for (size_t i = KERNEL_SIZE - PADDING - 1; i < KERNEL_SIZE - 1; i++) {
+			const T * in = this->data();
+			const T * pk = kernel.data() + i;
+			T sum = 0;
+			for (size_t j = i; j < KERNEL_SIZE; j++) {
+				sum += *in * *pk;
+				++in;
+				++pk;
+			}
+			*out = sum;
+			++out;
+		}
+		// calculate body
+		for (size_t i = 0; i < N - KERNEL_SIZE + 1; i++) {
+			const T * in = this->data() + i;
+			const T * pk = kernel.data();
+			T sum = 0;
+			for (size_t j = 0; j < KERNEL_SIZE; j++) {
+				sum += *in * *pk;
+				++in;
+				++pk;
+			}
+			*out = sum;
+			++out;
+		}
+		// calculate tail
+		for (size_t i = N - KERNEL_SIZE + 1; i < N - KERNEL_SIZE + 1 + PADDING; i++) {
+			const T * in = this->data() + i;
+			const T * pk = kernel.data();
+			T sum = 0;
+			for (size_t j = i; j < N; j++) {
+				sum += *in * *pk;
+				++in;
+				++pk;
+			}
+			*out = sum;
+			++out;
+		}
+	}
+
+	void linear_interpolate(const _Vector<T, N> & dst, _Vector<T, N> & result, T t) const {
+		linear_interpolate(*this, dst, result, t);
+	}
 	static void linear_interpolate(const _Vector<T, N> & src, const _Vector<T, N> & dst, _Vector<T, N> & result, T t) {
 		const T *p = src.data();
 		const T *p1 = dst.data();
 		T *pr = result.data();
 		for (size_t i = 0; i < N; i++) {
 			T d = *p1 - *p;
-			*pr += d * t;
+			*pr = *p + d * t;
 			++p;
 			++p1;
 			++pr;
 		}
 	}
 
+	void reflection(const _Vector<T, N> & v, _Vector<T, N> & result) const {
+		reflection(*this, v, result);
+	}
 	static void reflection(const _Vector<T, N> & n, const _Vector<T, N> & v, _Vector<T, N> & result) {
 	    T N_dot_V = n.dot(v) * 2;
 		const T *p = n.data();
@@ -188,29 +237,38 @@ public:
 	inline const T* data() const { return container._data(); }
 };
 
-template <typename T> class _Vector2D : public _Vector<T, 2>, private _DataContainerBase<T> {
+template <typename T> class _Vector2D : public _Vector<T, 2>, protected _DataContainerBase<T> {
 	virtual T* _data() { return &x; }
 	virtual const T* _data() const { return &x; }
-    virtual _DataContainerBase<T> * clone() const {
+    virtual _DataContainerBase<T> * _clone() const {
         _DataContainerBase<T> * tmp = new _DataContainerStatic<T, 2>();
-        tmp->copy(&this->x, 2);
+        tmp->_copy(&this->x, 2);
         return tmp;
     }
 public:
-	_Vector2D() : _Vector<T, 2>((_DataContainerBase<T>&)*this) {}
-	_Vector2D(T c) : _Vector<T, 2>(*this, c) {}
-	_Vector2D(T x, T y) : _Vector<T, 2>((_DataContainerBase<T>&)*this) {
+	_Vector2D() : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {}
+	_Vector2D(T c) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
+		this->_fill(c, 2);
+	}
+	_Vector2D(T x, T y) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
 		this->x = x;
 		this->y = y;
 	}
-	_Vector2D(const T * data) : _Vector<T, 2>(*this, data) {}
-	_Vector2D(const _Vector<T, 2> & v) : _Vector<T, 2>(*this, v) {}
-
-	_Vector2D<T> operator + (const _Vector2D<T> & v) const {
-		return _Vector2D<T>(x + v.x, y + v.y);
+	_Vector2D(const T * arr) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
+		this->_copy(arr, 2);
 	}
-	_Vector2D<T> operator - (const _Vector2D<T> & v) const {
-		return _Vector2D<T>(x - v.x, y - v.y);
+	_Vector2D(const _Vector<T, 2> & v) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
+		this->_copy(v.container, 2);
+	}
+	_Vector2D(const _Vector2D<T> & v) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
+		this->_copy(v.container, 2);
+	}
+
+	_Vector2D<T> operator + (const _Vector<T, 2> & v) const {
+		return _Vector2D<T>(x + v.data()[0], y + v.data()[1]);
+	}
+	_Vector2D<T> operator - (const _Vector<T, 2> & v) const {
+		return _Vector2D<T>(x - v.data()[0], y - v.data()[1]);
 	}
 	_Vector2D<T> operator * (real_t c) const {
 		return _Vector2D<T>(x * c, y * c);
@@ -219,9 +277,11 @@ public:
 		return _Vector2D<T>(x / c, y / c);
 	}
 
-	_Vector2D<T> refraction(const _Vector2D<T>& v, T ni, T nt)
+	bool refraction(const _Vector<T, 2>& v, T ni, T nt, _Vector<T, 2> & result) const {
+		return refraction(*this, v, ni, nt, result);
+	}
+	static bool refraction(const _Vector<T, 2>& normal, const _Vector<T, 2>& v, T ni, T nt, _Vector<T, 2> & result)
 	{
-		_Vector2D<T> _T;      /* the refracted vector */
 		_Vector2D<T> sin_T;      /* sin vect of the refracted vect */
 		_Vector2D<T> cos_V;      /* cos vect of the incident vect */
 		T len_sin_T;  /* length of sin T squared */
@@ -229,51 +289,60 @@ public:
 		T N_dot_V;
 		T N_dot_T;
 
-		if ( (N_dot_V = dot(v)) > 0.0 )
+		if ( (N_dot_V = normal.dot(v)) > 0.0 )
 			n_mult = ni / nt;
 		else
 			n_mult = nt / ni;
-		cos_V.x = x * N_dot_V;
-		cos_V.y = y * N_dot_V;
-		sin_T.x = (cos_V.x - v.x) * (n_mult);
-		sin_T.y = (cos_V.y - v.y) * (n_mult);
+		cos_V.x = normal.data()[0] * N_dot_V;
+		cos_V.y = normal.data()[1] * N_dot_V;
+		sin_T.x = (cos_V.x - v.data()[0]) * (n_mult);
+		sin_T.y = (cos_V.y - v.data()[1]) * (n_mult);
 		if ( (len_sin_T = sin_T.dot(sin_T)) >= 1.0 )
-			return _T;    /* internal reflection */
+			return false;    // internal reflection
 		N_dot_T = sqrt(1.0 - len_sin_T);
 		if ( N_dot_V < 0.0 )
 			N_dot_T = -N_dot_T;
-		_T.x = sin_T.x - x * N_dot_T;
-		_T.y = sin_T.y - y * N_dot_T;
-		return _T;
+		result.data()[0] = sin_T.x - normal.data()[0] * N_dot_T;
+		result.data()[1] = sin_T.y - normal.data()[1] * N_dot_T;
+		return true;
 	}
 
 	T x, y;
 };
 
-template <typename T> class _Vector3D : public _Vector<T, 3>, private _DataContainerBase<T> {
+template <typename T> class _Vector3D : public _Vector<T, 3>, protected _DataContainerBase<T> {
 	virtual T* _data() { return &x; }
 	virtual const T* _data() const { return &x; }
-    virtual _DataContainerBase<T> * clone() const {
+    virtual _DataContainerBase<T> * _clone() const {
         _DataContainerBase<T> * tmp = new _DataContainerStatic<T, 3>();
-        tmp->copy(&this->x, 3);
+        tmp->_copy(&this->x, 3);
         return tmp;
     }
 public:
 	_Vector3D() : _Vector<T, 3>((_DataContainerBase<T>&)*this) {}
-	_Vector3D(T c) : _Vector<T, 3>(*this, c) {}
+	_Vector3D(T c) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
+		this->_fill(c, 3);
+	}
 	_Vector3D(T x, T y, T z) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
 		this->x = x;
 		this->y = y;
 		this->z = z;
 	}
-	_Vector3D(const T * data) : _Vector<T, 3>(*this, data) {}
-	_Vector3D(const _Vector<T, 3> & v) : _Vector<T, 3>(*this, v) {}
+	_Vector3D(const T * arr) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
+		this->_copy(arr, 3);
+	}
+	_Vector3D(const _Vector<T, 3> & v) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.container, 3);
+	}
+	_Vector3D(const _Vector3D<T> & v) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.container, 3);
+	}
 
 	_Vector3D<T> operator + (const _Vector<T, 3> & v) const {
-		return _Vector3D<T>(x + v.x, y + v.y, z + v.z);
+		return _Vector3D<T>(x + v.data()[0], y + v.data()[1], z + v.data()[2]);
 	}
 	_Vector3D<T> operator - (const _Vector<T, 3> & v) const {
-		return _Vector3D<T>(x - v.x, y - v.y, z - v.z);
+		return _Vector3D<T>(x - v.data()[0], y - v.data()[1], z - v.data()[2]);
 	}
 	_Vector3D<T> operator * (T c) const {
 		return _Vector3D<T>(x * c, y * c, z * c);
@@ -284,45 +353,97 @@ public:
 
 	_Vector3D<T> cross(const _Vector<T, 3>& b) const
 	{
- 		return _Vector3D<T>(y * b.z - z * b.y,
-			z * b.x - x * b.z,
-			x * b.y - y * b.x);
+ 		return _Vector3D<T>(y * b.data()[2] - z * b.data()[1],
+			z * b.data()[0] - x * b.data()[2],
+			x * b.data()[1] - y * b.data()[0]);
 	}
 
-	_Vector3D<T> refraction(const _Vector<T, 3>& v, T ni, T nt)
+	static bool refraction(const _Vector<T, 3>& normal, const _Vector<T, 3>& v, T ni, T nt, _Vector3D<T> & result)
 	{
-    _Vector3D<T> _T;      /* the refracted vector */
-    _Vector3D<T> sin_T;      /* sin vect of the refracted vect */
-    _Vector3D<T> cos_V;      /* cos vect of the incident vect */
-    T len_sin_T;  /* length of sin T squared */
-    T n_mult;     /* ni over nt */
-    T N_dot_V;
-    T N_dot_T;
+		_Vector3D<T> sin_T;      /* sin vect of the refracted vect */
+		_Vector3D<T> cos_V;      /* cos vect of the incident vect */
+		T len_sin_T;  /* length of sin T squared */
+		T n_mult;     /* ni over nt */
+		T N_dot_V;
+		T N_dot_T;
 
-    if ( (N_dot_V = dot(v)) > 0.0 )
+	    if ( (N_dot_V = normal.dot(v)) > 0.0 )
 			n_mult = ni / nt;
 		else
 			n_mult = nt / ni;
-		cos_V.x = x * N_dot_V;
-		cos_V.y = y * N_dot_V;
-		cos_V.z = z * N_dot_V;
-		sin_T.x = (cos_V.x - v.x) * (n_mult);
-		sin_T.y = (cos_V.y - v.y) * (n_mult);
-		sin_T.z = (cos_V.z - v.z) * (n_mult);
+		cos_V.x = normal.data()[0] * N_dot_V;
+		cos_V.y = normal.data()[1] * N_dot_V;
+		cos_V.z = normal.data()[2] * N_dot_V;
+		sin_T.x = (cos_V.x - v.data()[0]) * (n_mult);
+		sin_T.y = (cos_V.y - v.data()[1]) * (n_mult);
+		sin_T.z = (cos_V.z - v.data()[2]) * (n_mult);
 		if ( (len_sin_T = sin_T.dot(sin_T)) >= 1.0 )
-      return _T;    /* internal reflection */
-    N_dot_T = sqrt(1.0 - len_sin_T);
-    if ( N_dot_V < 0.0 )
-		N_dot_T = -N_dot_T;
-    _T.x = sin_T.x - x * N_dot_T;
-    _T.y = sin_T.y - y * N_dot_T;
-    _T.z = sin_T.z - z * N_dot_T;
-    return _T;
+			return false;    // internal reflection
+		N_dot_T = sqrt(1.0 - len_sin_T);
+		if ( N_dot_V < 0.0 )
+			N_dot_T = -N_dot_T;
+		result.data()[0] = sin_T.x - normal.data()[0] * N_dot_T;
+		result.data()[1] = sin_T.y - normal.data()[1] * N_dot_T;
+		result.data()[2] = sin_T.z - normal.data()[2] * N_dot_T;
+	
+		return true;
 	}
 
 	T x, y, z;
 };
 
+template <typename T> class _Vector4D : public _Vector<T, 4>, protected _DataContainerBase<T> {
+	virtual T* _data() { return &x; }
+	virtual const T* _data() const { return &x; }
+    virtual _DataContainerBase<T> * _clone() const {
+        _DataContainerBase<T> * tmp = new _DataContainerStatic<T, 3>();
+        tmp->_copy(&this->x, 4);
+        return tmp;
+    }
+public:
+	_Vector4D() : _Vector<T, 4>((_DataContainerBase<T>&)*this) {}
+	_Vector4D(T c) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
+		this->_fill(c, 4);
+	}
+	_Vector4D(T x, T y, T z, T w) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
+		this->x = x;
+		this->y = y;
+		this->z = z;
+		this->w = w;
+	}
+	_Vector4D(const T * arr) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
+		this->_copy(arr, 4);
+	}
+	_Vector4D(const _Vector<T, 4> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.container, 4);
+	}
+	_Vector4D(const _Vector4D<T> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.container, 4);
+	}
+	_Vector4D(const _Vector<T, 3> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.container, 3);
+		this->w = 1;
+	}
+
+	_Vector4D<T> operator + (const _Vector<T, 4> & v) const {
+		return _Vector4D<T>(x + v.data()[0], y + v.data()[1], z + v.data()[2], w + v.data()[3]);
+	}
+	_Vector4D<T> operator - (const _Vector<T, 4> & v) const {
+		return _Vector4D<T>(x - v.data()[0], y - v.data()[1], z - v.data()[2], w - v.data()[3]);
+	}
+	_Vector4D<T> operator * (T c) const {
+		return _Vector4D<T>(x * c, y * c, z * c, w * c);
+	}
+	_Vector4D<T> operator / (T c) const {
+		return _Vector4D<T>(x / c, y / c, z / c, w / c);
+	}
+
+	_Vector3D<T> vector3d() const {
+		return _Vector3D<T>(x, y, z);
+	}
+
+	T x, y, z, w;
+};
 
 template <typename T, size_t N> class _VectorStatic : public _Vector<T, N>, private _DataContainerStatic<T, N> {
 public:

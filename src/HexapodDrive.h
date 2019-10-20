@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "Locomotion.h"
 #include "effectors/PCA9685.h"
+#include "math_utils.h"
 #include <vector>
 #include <map>
 #include <string>
@@ -11,8 +12,6 @@
 namespace Locomotion {
 
 typedef struct servoConfig_struct {
-	uint8_t joint_id : 4;					//
-	uint8_t limb_id : 4;					//
 	uint8_t expander_addr : 4;				// expander i2c address where this motor is connected to
 	uint8_t addr : 4;						// motor id on the expander
 
@@ -26,52 +25,45 @@ typedef struct servoConfig_struct {
 	int16_t b;
 } servoConfig_t;
 
-class Joint {
+template<typename T, typename KINEMATICS_T, size_t DOF> class Limb {
 protected:
-	// positions range from 0 to 1
-	// these will be mapped to servo motor positions accordingly based on min/max
-public:
-	real_t start;
-	real_t current;
-	real_t end;
-	real_t speed;
+	KINEMATICS_T & kinematics;
+	const _Vector3D<T> origin;
+	const _Vector3D<T> orientation;
+	T _Vector3D target;
 
 public:
-	Segment() {
-		start = current = end;
-		speed = 0;
+	T current_angles[DOF];
+	T target_angles[DOF];
+	T _Vector3D<T> position;
+
+public:
+	Limb(KINEMATICS_T & kinematics, const _Vector3D<T> & origin, const _Vector3D<T> & orientation,
+		const _Vector3D<T> & position) 
+		: kinematics(kinematics), origin(origin), orientation(orientation) {
+		for (size_t i = 0; i < DOF; i ++) {
+			this->current_angles[i] = this->kinematics.config[i].constraints.middle();
+		}
 	}
 
 	virtual void begin() {
-		// TODO setup segment
-	}
-	virtual void loop(unsigned long now, unsigned long last_now, std::map<uint8_t, PCA9685>& expanders) {
-		// TODO send segment info to effector
-	}
-};
-
-class Limb {
-protected:
-	std::vector<Segment> segments;
-
-public:
-	Limb() {
-		// TODO setup segments
-	}
-
-	virtual void begin() {
-		// TODO iterate over segments
+		this->kinematics.inverse(this->position, this->current_angles, this->target_angles, 0.1, 10);
 	}
 
 	virtual void loop(unsigned long now, unsigned long last_now, std::map<uint8_t, PCA9685>& expanders) {
 		// TODO iterate over segments
 	}
 
-	virtual Segment& getSegment(size_t index) {
-		return segments[index];
+	virtual _Vector3D<T> set_target(const _Vector3D<T> & target) {
+		_Vector3D<T> tmp(target);
+		// TODO: transform body coordinates to leg coordinates
+		tmp -= this->origin;
 	}
-	virtual size_t getSegmentCount() {
-		return segments.size();
+
+	virtual _Vector3D<T> get_position() const {
+		_Vector3D<T> tmp(this->position);
+		// TODO: transform leg coordinates to body coordinates
+		return tmp + this->origin;
 	}
 };
 
@@ -99,15 +91,17 @@ public:
 	}
 };
 
+template<typename T, typename KINEMATICS_T, size_t DOF>
 class HexapodDrive : public Locomotion {
 protected:
-		std::vector<Limb> limbs;
+		Limb<T, KINEMATICS_T, DOF> *limbs;
+
 		std::map<uint8_t, PCA9685> expanders;
 		std::map<std::string, Gait*> gaits;
 		unsigned long last_now;
 
 public:
-	HexapodDrive(TwoWire * wire, motorConfig_t * motors, size_t motorNum)
+	HexapodDrive(TwoWire * wire, servoConfig_t * motors)
 		: Locomotion() {
 			// TODO setup limbs and expanders
 	}
