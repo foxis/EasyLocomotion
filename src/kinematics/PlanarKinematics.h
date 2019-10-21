@@ -74,4 +74,5 @@ public:
 #include "PlanarKinematics2DOF.h"
 #include "PlanarKinematics3DOF.h"
 
+typedef _PlanarJoint<real_t> PlanarJoint_t;
 #endif

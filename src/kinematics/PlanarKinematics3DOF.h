@@ -37,20 +37,25 @@ public:
     /// Performs planar forward kinematics 
     /// assuming that the first joint is rotation about y axis
     ///
-    virtual _Vector3D<T> direct(const T * angle_arr) {
+    virtual bool direct(const T * angle_arr, _Vector3D<T> & dst) {
         real_t a = angle_arr[1];
         real_t b = angle_arr[2] + a;
         _Vector3D<T> effector(
             config[0].length + config[1].length * cos(a) + config[2].length * cos(b), 
             config[1].length * sin(a) + config[2].length * sin(b), 
             0);
-        return _Vector3D<T>(effector.x * cos(angle_arr[0]), effector.y, effector.x * sin(angle_arr[0]));
+        dst.x = effector.x * cos(angle_arr[0]);
+        dst.y = effector.y;
+        dst.z = effector.x * sin(angle_arr[0]));
+        return true;
     }
 
     virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) {
 
     }
 };
+
+typedef _PlanarKinematics<real_t, 3> PlanarKinematics3DOF;
 
 };
 

@@ -24,8 +24,6 @@ template<typename T> void print_vector(const T& v, size_t N, const char * name) 
     }
     Serial.println();
 }
-#else
-typedef unsigned int size_t;
 #endif
 
 #include <unity.h>
