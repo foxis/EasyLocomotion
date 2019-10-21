@@ -24,11 +24,11 @@ namespace Locomotion {
 
 template<typename T> class _PlanarKinematics<T, 3> : public _KinematicsModel<T> {
 public:
-    const PlanarJoint_t<T> * config;
-    const _ConstraintVolume<T> working_space
+    const _PlanarJoint_t<T> * config;
+    const _ConstraintVolume<T> & working_space;
 
 public:
-    _PlanarKinematics(const PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
+    _PlanarKinematics(const _PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
         : config(joints), working_space(working_space) {
     }
     ~_PlanarKinematics() {
@@ -37,7 +37,7 @@ public:
     /// Performs planar forward kinematics 
     /// assuming that the first joint is rotation about y axis
     ///
-    virtual bool direct(const T * angle_arr, _Vector3D<T> & dst) {
+    virtual bool forward(const T * angle_arr, _Vector3D<T> & dst) {
         real_t a = angle_arr[1];
         real_t b = angle_arr[2] + a;
         _Vector3D<T> effector(
@@ -46,7 +46,7 @@ public:
             0);
         dst.x = effector.x * cos(angle_arr[0]);
         dst.y = effector.y;
-        dst.z = effector.x * sin(angle_arr[0]));
+        dst.z = effector.x * sin(angle_arr[0]);
         return true;
     }
 

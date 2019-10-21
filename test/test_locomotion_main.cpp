@@ -29,7 +29,7 @@ template<typename T> void print_vector(const T& v, size_t N, const char * name) 
 #include <unity.h>
 
 #include "math_utils.h"
-
+#include "kinematics/PlanarKinematics.h"
 
 using namespace Locomotion;
 

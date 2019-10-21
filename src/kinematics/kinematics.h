@@ -21,6 +21,7 @@
 #define KINEMATICS_H
 
 #include "locomotion.h"
+#include "../math_utils.h"
 
 namespace Locomotion {
 
@@ -30,12 +31,12 @@ namespace Locomotion {
 
 template<typename T> class _KinematicsModel {
 public:
-    virtual _Vector3D<T> direct(const T * angle_arr, _Vector3D<T> dst) {
+    virtual _Vector3D<T> forward(const T * angle_arr) {
         _Vector3D<T> tmp;
-        direct(angle_arr, &tmp);
+        forward(angle_arr, tmp);
         return tmp;
     }
-    virtual bool direct(const T * angle_arr, _Vector3D<T> dst) = 0;
+    virtual bool forward(const T * angle_arr, _Vector3D<T> &dst) = 0;
     virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) = 0;
 };
 

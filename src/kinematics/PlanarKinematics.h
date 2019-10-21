@@ -25,19 +25,19 @@
 
 namespace Locomotion {
 
-template<T>
-typedef struct _PlanarJoint_struct {
+template<typename T>
+struct _PlanarJoint_t {
     _ConstraintSegment<T> constraints;
     T length;
-} _PlanarJoint_t;
+};
 
 template<typename T, size_t DOF> class _PlanarKinematics : public _KinematicsModel<T> {
 public:
     const _PlanarJoint_t<T> * config;
-    const _ConstraintVolume<T> working_space
+    const _ConstraintVolume<T>& working_space;
 
 public:
-    _PlanarKinematics(const PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
+    _PlanarKinematics(const _PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
         : config(joints), working_space(working_space) {
     }
     ~_PlanarKinematics() {
@@ -46,7 +46,7 @@ public:
     /// Performs planar forward kinematics 
     /// assuming that the first joint is rotation about y axis
     ///
-    virtual _Vector3D<T> direct(const T * angle_arr) {
+    virtual bool forward(const T * angle_arr, _Vector3D<T> & dst) {
         _Vector3D<T> effector(config[0].length, 0, 0);
         real_t a = 0;
         for (size_t i = 1; i < DOF; i++) {
@@ -55,7 +55,10 @@ public:
             real_t y = config[i].length * sin(a);
             effector += _Vector3D<T>(x, y, 0);
         }
-        return _Vector3D<T>(effector.x * cos(angle_arr[0]), effector.y, effector.x * sin(angle_arr[0]));
+        dst.x = effector.x * cos(angle_arr[0]);
+        dst.y = effector.y;
+        dst.z = effector.x * sin(angle_arr[0]);
+        return true;
     }
 
     virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) {
@@ -69,10 +72,11 @@ public:
 
 };
 
+typedef _PlanarJoint_t<real_t> PlanarJoint_t;
+
 };
 
 #include "PlanarKinematics2DOF.h"
 #include "PlanarKinematics3DOF.h"
 
-typedef _PlanarJoint<real_t> PlanarJoint_t;
 #endif
