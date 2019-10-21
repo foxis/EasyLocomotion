@@ -222,18 +222,11 @@ public:
     }
     void transpose() {
         static_assert(N == M, "Must be square matrix");
-        T *dst = data();
-        T *src = data();
-        for (size_t i = 0; i < N; i++) {
-            T * p = dst + i;
-            for (size_t j = 0; j < M; j++) {
-                if (i != j) {
-                    T tmp = *p;
-                    *p = *src;
-                    *src = tmp;
-                }
-                ++src;
-                p += M;
+        for (size_t i = 0; i < N - 1; i++) {
+            for (size_t j = i + 1; j < N; j++) {
+                T tmp = val(i, j);
+                *data(i, j) = val(j, i);
+                *data(j, i) = tmp;
             }
         }
     }
@@ -733,7 +726,7 @@ public:
         *(p1++) = -(a * f - c * d);
         *(p1++) = a * e - b * d;
         dst.transpose();
-        dst.div(D);
+        dst /= D;
         return true;
     }
 };
@@ -831,13 +824,12 @@ public:
                         ++kk;
                     }
                 }
-                const T c = 1 - (2 * (i + j) % 2);
-                *dst.data(j, i) = c * tmp.det();
+                const T c = 1 - (2 * ((i + j) % 2));
+                *dst.data(i, j) = c * tmp.det();
             }
         }
-        dst.transpose();
-        dst.div(D);
-        return false;
+        dst /= D;
+        return true;
     }
 };
 

@@ -1,0 +1,3 @@
+#define KINEMATICS_3DOF_TESTS
+
+
