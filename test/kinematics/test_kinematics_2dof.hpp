@@ -1,5 +1,7 @@
 #define KINEMATICS_3DOF_TESTS \
-    _RUN_TEST(test_planar_kinematics_2dof_forward); 
+    _RUN_TEST(test_planar_kinematics_2dof_forward); \
+    _RUN_TEST(test_planar_kinematics_2dof_forward1); \
+    _RUN_TEST(test_planar_kinematics_2dof_forward2); 
 
 
 PlanarJoint_t joints_2dof[] = {
