@@ -24,6 +24,9 @@ template<typename T> void print_vector(const T& v, size_t N, const char * name) 
     }
     Serial.println();
 }
+#else
+#include <string.h>
+#include <limits.h>
 #endif
 
 #include <unity.h>
