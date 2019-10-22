@@ -27,6 +27,10 @@ template<typename T> void print_vector(const T& v, size_t N, const char * name) 
 #else
 #include <string.h>
 #include <limits.h>
+typedef uint8_t byte;
+
+define min(a, b) ((a) < (b) ? (a) : (b))
+define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
 #include <unity.h>
