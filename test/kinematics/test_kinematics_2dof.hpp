@@ -1,20 +1,22 @@
-#define KINEMATICS_3DOF_TESTS \
+#define KINEMATICS_2DOF_TESTS \
     _RUN_TEST(test_planar_kinematics_2dof_forward); \
     _RUN_TEST(test_planar_kinematics_2dof_forward1); \
     _RUN_TEST(test_planar_kinematics_2dof_forward2); \
-    _RUN_TEST(test_planar_kinematics_2dof_inverse); 
+    _RUN_TEST(test_planar_kinematics_2dof_inverse); \
+    _RUN_TEST(test_planar_kinematics_2dof_inverse1); \
+    _RUN_TEST(test_planar_kinematics_2dof_inverse2); \
 
 
 PlanarJoint_t joints_2dof[] = {
     {
         .constraints = {
-            .min = -1, 
-            .max = 1
+            .min = -M_PI, 
+            .max = M_PI
         }, 
         .length = 10 
     },
     {
-        .constraints = {-.5, 1}, 
+        .constraints = {-M_PI, M_PI}, 
         .length = 75
     },
 };
@@ -66,7 +68,39 @@ void test_planar_kinematics_2dof_inverse() {
     real_t angles[] = {0, 0};
     
     real_t error = k.inverse(Vector3D(0, 75, 10), prev_angles, angles, 1, 10); 
-    TEST_ASSERT_FLOAT_WITHIN(1e-6, error, 0);
     TEST_ASSERT_FLOAT_WITHIN(1e-6, angles[0], M_PI / 2);
     TEST_ASSERT_FLOAT_WITHIN(1e-6, angles[1], M_PI / 2);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, error, 0);
+}
+
+void test_planar_kinematics_2dof_inverse1() {
+    PlanarKinematics2DOF k(joints_2dof, vol_2dof);
+
+    real_t prev_angles[] = {0, 0};
+    real_t angles[] = {1.3, -.3};
+    real_t ik_angles[] = {0, 0};
+    Vector3D fw;
+
+    k.forward(angles, fw);
+    real_t error = k.inverse(fw, prev_angles, ik_angles, 1, 10); 
+
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, error, 0);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, angles[0], ik_angles[0]);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, angles[1], ik_angles[1]);
+}
+
+void test_planar_kinematics_2dof_inverse2() {
+    PlanarKinematics2DOF k(joints_2dof, vol_2dof);
+
+    real_t prev_angles[] = {0, 0};
+    real_t angles[] = {-.3, 1.3};
+    real_t ik_angles[] = {0, 0};
+    Vector3D fw;
+
+    k.forward(angles, fw);
+    real_t error = k.inverse(fw, prev_angles, ik_angles, 1, 10); 
+
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, error, 0);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, angles[0], ik_angles[0]);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, angles[1], ik_angles[1]);
 }

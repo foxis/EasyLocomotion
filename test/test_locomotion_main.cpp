@@ -24,6 +24,13 @@ template<typename T> void print_vector(const T& v, size_t N, const char * name) 
     }
     Serial.println();
 }
+
+template<typename T> void print_val(const T a, const char * name) {
+    Serial.print("value ");
+    Serial.println(name);
+    Serial.println(a);
+}
+
 #else
 #include <string.h>
 #include <limits.h>

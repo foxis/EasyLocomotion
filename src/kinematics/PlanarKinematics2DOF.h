@@ -38,17 +38,23 @@ public:
     /// assuming that the first joint is rotation about y axis
     ///
     virtual bool forward(const T * angle_arr, _Vector3D<T> &dst) {
-        T a = angle_arr[1];
-        _Vector3D<T> effector(config[0].length + config[1].length * cos(a), config[1].length * sin(a), 0);
-        dst.x = effector.x * cos(angle_arr[0]);
+        const T a0 = config[0].constraints.limit(angle_arr[0]);
+        const T a1 = config[1].constraints.limit(angle_arr[1]);
+        const T l0 = config[0].length;
+        const T l1 = config[1].length;
+
+        _Vector3D<T> effector(l0 + l1 * cos(a1), l1 * sin(a1), 0);
+
+        dst.x = effector.x * cos(a0);
         dst.y = effector.y;
-        dst.z = effector.x * sin(angle_arr[0]);
+        dst.z = effector.x * sin(a0);
         return true;
     }
 
     virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) {
+        T x_prime = sqrt(SQR(target.x) + SQR(target.z)) - config[0].length;
         angle_arr[0] = config[0].constraints.limit(atan2(target.z, target.x));
-        angle_arr[1] = config[1].constraints.limit(atan2(target.y, target.x - config[0].length));
+        angle_arr[1] = config[1].constraints.limit(atan2(target.y, x_prime));
         _Vector3D<T> pos;
         forward(angle_arr, pos);
         return (target - pos).magnitudeSqr();

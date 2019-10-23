@@ -17,57 +17,61 @@
  *
  */
 
-#if !defined(PLANAR_KINEMATICS_H)
-#define PLANAR_KINEMATICS_H
+#if !defined(GENERAL_KINEMATICS_H)
+#define GENERAL_KINEMATICS_H
 
 #include "../locomotion.h"
 #include "kinematics.h"
 
 namespace Locomotion {
 
+typedef enum {
+    PLANAR = 0,
+    LINEAR = 1,
+} JointType_t;
+
 template<typename T>
-struct _PlanarJoint_t {
+struct _GeneralJoint_t {
+    JointType_t type;
     _ConstraintSegment<T> constraints;
-    T length;
+    _Vector3<T> axis;
+    _Vector3<T> segment;
 };
 
-template<typename T, size_t DOF> class _PlanarKinematics : public _KinematicsModel<T> {
+template<typename T, size_t DOF> class _GeneralKinematics : public _KinematicsModel<T> {
 public:
-    const _PlanarJoint_t<T> * config;
+    const _GeneralJoint_t<T> * config;
     const _ConstraintVolume<T>& working_space;
 
 public:
-    _PlanarKinematics(const _PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
+    _PlanarKin_GeneralKinematicsematics(const _GeneralJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
         : config(joints), working_space(working_space) {
     }
-    ~_PlanarKinematics() {
+    ~_GeneralKinematics() {
     }
 
-    /// Performs planar forward kinematics 
-    /// assuming that the first joint is rotation about y axis
-    ///
-    virtual bool forward(const T * angle_arr, _Vector3D<T> & effector) {
-        const T * ap = angle_arr + 1;
-        const _PlanarJoint_t<T> *cp = this->config + 1;
-        T a = 0;
+    /// Performs forward kinematics 
+    virtual bool forward(const T * joint_value_arr, _Vector3D<T> & effector) {
+        _Matrix3x3 transform;
+        _Matrix3x3 current_transform;        
+        const _GeneralJoint_t<T> * cp = config;
+        const T * jp = joint_value_arr;
 
-        effector.x = config[0].length;
-        effector.y = 0;
-        effector.z = 0;
-        
-        for (size_t i = 1; i < DOF; i++) {
-            a += cp->constraints.limit(*ap);
+        transform.eye();
+        effector.fill(0);
 
-            real_t x = cp->length * cos(a);
-            real_t y = cp->length * sin(a);
-            effector += _Vector3D<T>(x, y, 0);
-
+        for (size_t i = 0; i < DOF; i++) {
+            const T value = cp->constraints.limit(*ap);
+            if (cp->type == PLANAR) {
+                // TODO - calculate rotation matrix
+                transform *= current_transform;
+                effector += current_transform * cp->segment;
+            } else if (cp->type == LINEAR) {
+                effector += cp->axis * value;
+            }
             ++cp;
             ++ap;
         }
-        const T tmp_x = effector.x;
-        effector.x = tmp_x * cos(angle_arr[0]);
-        effector.z = tmp_x * sin(angle_arr[0]);
         return true;
     }
 

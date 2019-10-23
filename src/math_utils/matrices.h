@@ -638,6 +638,20 @@ public:
         *(p1++) = a / D;
         return true;
     }
+
+    void rotation(T theta) {
+        rotation(theta, *this);
+    }
+
+    void rotation(T theta, _Matrix<T, 2, 2> & dst) const {
+        T *p = dst.data();
+        T c = cos(theta);
+        T s = sin(theta);
+        *(p++) = c;
+        *(p++) = -s;
+        *(p++) = s;
+        *(p++) = c;
+    } 
 };
 
 template <class T> class _Matrix3x3 : public _Matrix<T, 3, 3>, private _DataContainerStatic<T, 9> {
@@ -729,6 +743,93 @@ public:
         dst /= D;
         return true;
     }
+
+    void rotation_x(T theta) {
+        rotation_x(theta, *this);
+    }
+    void rotation_y(T theta) {
+        rotation_y(theta, *this);
+    }
+    void rotation_z(T theta) {
+        rotation_z(theta, *this);
+    }
+
+    void rotation_x(T theta, _Matrix<T, 3, 3> & dst) const {
+        T *p = dst.data();
+        T c = cos(theta);
+        T s = sin(theta);
+        *(p++) = 1;
+        *(p++) = 0;
+        *(p++) = 0;
+        *(p++) = 0;
+        *(p++) = c;
+        *(p++) = -s;
+        *(p++) = 0;
+        *(p++) = s;
+        *(p++) = c;
+    } 
+    void rotation_y(T theta, _Matrix<T, 3, 3> & dst) const {
+        T *p = dst.data();
+        T c = cos(theta);
+        T s = sin(theta);
+        *(p++) = c;
+        *(p++) = 0;
+        *(p++) = s;
+        *(p++) = 0;
+        *(p++) = 1;
+        *(p++) = 0;
+        *(p++) = -s;
+        *(p++) = 0;
+        *(p++) = c;
+    } 
+    void rotation_z(T theta, _Matrix<T, 3, 3> & dst) const {
+        T *p = dst.data();
+        T c = cos(theta);
+        T s = sin(theta);
+        *(p++) = c;
+        *(p++) = -s;
+        *(p++) = 0;
+        *(p++) = s;
+        *(p++) = c;
+        *(p++) = 0;
+        *(p++) = 0;
+        *(p++) = 0;
+        *(p++) = 1;
+    } 
+
+    void orientation(const _Vector<T, 3> &axis, T theta) {
+        orientation(axis, theta);
+    }
+
+    void orientation(const _Vector<T, 3> &axis, T theta, _Matrix<T, 3, 3> & dst) const {
+        // calculate attention quaternion
+        // NOTE: axis must be unit vector
+        theta /= 2.0;
+        const T qr = cos(theta);
+        const T s = sin(theta);
+        const T qi = axis.x * s, qj = axis.y * s, qk = axis.z * s;
+
+        // calculate quaternion rotation matrix
+        T * p = dst.data();
+        const T qjqj = qj * qj;
+        const T qiqi = qi * qi;
+        const T qkqk = qk * qk;
+        const T qiqj = qi * qj;
+        const T qjqr = qj * qr;
+        const T qiqk = qi * qk;
+        const T qiqr = qi * qr;
+        const T qkqr = qk * qr;
+        const T qjqk = qj * qk;
+        *(p++) = 1.0 - 2.0 * (qjqj + qkqk);
+        *(p++) = 2.0 * (qiqj + qkqr);
+        *(p++) = 2.0 * (qiqk + qjqr);
+        *(p++) = 2.0 * (qiqj + qkqr);
+        *(p++) = 1.0 - 2.0 * (qiqi + qkqk);
+        *(p++) = 2.0 * (qjqk + qiqr);
+        *(p++) = 2.0 * (qiqk + qjqr);
+        *(p++) = 2.0 * (qjqk + qiqr);
+        *(p++) = 1.0 - 2.0 * (qiqi + qjqj);
+    }
 };
 
 template <class T> class _Matrix4x4 : public _Matrix<T, 4, 4>, private _DataContainerStatic<T, 16> {
@@ -757,6 +858,27 @@ public:
     }
 	_Matrix4x4(const _Matrix4x4<T> & m) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
         this->_copy(m.container, 16);
+    }
+
+    void operator = (const _Matrix3x3<T> & m) {
+        const T * sp = m.data();
+        T * dp = this->data();
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+        *(dp++) = 0;
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+        *(dp++) = 0;
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+        *(dp++) = 0;
+        *(dp++) = 0;
+        *(dp++) = 0;
+        *(dp++) = 0;
+        *(dp++) = 1;
     }
 
     _Matrix4x4 operator + (const _Matrix<T, 4, 4> & m) const {
