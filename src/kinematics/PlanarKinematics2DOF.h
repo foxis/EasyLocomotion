@@ -47,8 +47,8 @@ public:
     }
 
     virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) {
-        angle_arr[1] = config[1].constraints.limit(atan2(target.y, target.x - config[0].length));
         angle_arr[0] = config[0].constraints.limit(atan2(target.z, target.x));
+        angle_arr[1] = config[1].constraints.limit(atan2(target.y, target.x - config[0].length));
         _Vector3D<T> pos;
         forward(angle_arr, pos);
         return (target - pos).magnitudeSqr();
