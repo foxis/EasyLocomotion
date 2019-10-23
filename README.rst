@@ -36,11 +36,14 @@
       :target: https://github.com/foxis/EasyLocomotion/issues
 
 
-# EasyLocomotion
+EasyLocomotion
+--------------
+
 Locomotion Arduino framework for: 
-- differential drive
-- N-legged robots
-- freespace(drone)
-- forward/inverse kinematics
-- linear algebra: matrix/vector algebra
-- various I2C devices(sensors, effectors, etc)
+
+    - differential drive
+    - N-legged robots
+    - freespace(drone)
+    - forward/inverse kinematics
+    - linear algebra: matrix/vector algebra
+    - various I2C devices(sensors, effectors, etc)
