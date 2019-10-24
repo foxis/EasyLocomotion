@@ -946,7 +946,7 @@ public:
                         ++kk;
                     }
                 }
-                const T c = 1 - (2 * ((i + j) % 2));
+                const T c = 1.0 - (2.0 * ((i + j) % 2));
                 *dst.data(i, j) = c * tmp.det();
             }
         }

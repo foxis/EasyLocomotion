@@ -35,10 +35,10 @@ void test_matrices_4x4_inv() {
     TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(1, 3), 2/3.0);
     TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(2, 0), 1/3.0);
     TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(2, 1), 1/3.0);
-    TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(2, 2), -1/3.0);
+    TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(2, 2), -1);
     TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(2, 3), -4/3.0);
     TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(3, 0), -1/3.0);
     TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(3, 1), -1/3.0);
-    TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(3, 2), 1/3.0);
+    TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(3, 2), 1);
     TEST_ASSERT_FLOAT_WITHIN(2e-6, b.val(3, 3), 7/3.0);
 }
