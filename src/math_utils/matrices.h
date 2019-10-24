@@ -174,6 +174,24 @@ public:
         }
     }
 
+    template<size_t K>
+    void mul_mat(const _Vector<T, K> & m, _Matrix<T, K, K> & dst) const {
+        static_assert(N != K || M != K, "Wrong diagonal matrix rank");
+		
+        for(size_t i = 0; i < K; i++)
+            for(size_t j = 0; j < K; j++)
+                *dst.data(i, j) = val(i, j) * m.data()[j];
+    }
+
+    template<size_t K>
+    void mul_mat(const _Vector<T, K> & m) {
+        static_assert(N != K || M != K, "Wrong diagonal matrix rank");
+		
+        for(size_t i = 0; i < K; i++)
+            for(size_t j = 0; j < K; j++)
+                *data(i, j) *= m.data()[j];
+    }
+
     void mul(const _Vector<T, N> & v, _Vector<T, M> & dst) const {
         T *pd = dst.data();
         const T *src = data();
@@ -268,6 +286,31 @@ public:
         static_assert(N == M, "Must be square matrix");
         // Not implemented
         return false;
+    }
+
+    ///
+    /// Moore–Penrose inverse
+    ///
+    virtual pinv(_Matrix<T, N, N> & dst, T eps=1e-9) const {
+        _DataContainerDynamic<T, N * M> Ucont;
+        _DataContainerDynamic<T, M * M> Vcont;
+        _DataContainerDynamic<T, M> Wcont;
+        _DataContainerDynamic<T, N * M> Rcont;
+        _Matrix<T, N, M> U(Ucont);
+        _Matrix<T, M, M> V(Vcont);
+        _Vector<T, M> W(Wcont);
+        _Vector<T, M> Rv(Rcont);
+
+        svd(U, W, V, Rv);
+        for (size_t i = 0; i < M; i++) {
+            const T tmp = W.val(i);
+            if (fabs(tmp) > eps)
+                W.data()[i] = 1.0 / tmp;
+        }
+        V.transpose();
+        U.transpose();
+        V.mul_mat<M>(W);
+        V.mul_mat<N>(U, dst);
     }
 
     // SVD 'Singular Value Decomposition'
