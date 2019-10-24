@@ -72,9 +72,9 @@ void test_planar_kinematics_3dof_inverse() {
     real_t angles[] = {0, 0, 0};
     
     real_t error = k.inverse(Vector3D(40, 90, -10), prev_angles, angles, 1, 10); 
-    TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[0], M_PI / 2);
-    TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[1], M_PI / 2);
-    TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[2], M_PI / 2);
+    TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[0], -.24497);
+    TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[1], 2.11945);
+    TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[2], -1.76532);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, error, 0);
 }
 
@@ -82,7 +82,7 @@ void test_planar_kinematics_3dof_inverse1() {
     PlanarKinematics3DOF k(joints_3dof, vol_3dof);
 
     real_t prev_angles[] = {0, 0, 0};
-    real_t angles[] = {.13, -.3, .1};
+    real_t angles[] = {.13, -.3, -.1};
     real_t ik_angles[] = {0, 0, 0};
     Vector3D fw;
 

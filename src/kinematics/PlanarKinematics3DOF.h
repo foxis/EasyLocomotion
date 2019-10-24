@@ -60,10 +60,13 @@ public:
         const T l1 = config[1].length;
         const T l2 = config[2].length;
         T x_prime = sqrt(SQR(target.x) + SQR(target.z)) - l0;
+        const T gamma = atan2(target.y, x_prime);
+        const T beta = acos((SQR(l1) + SQR(l2) - SQR(x_prime) - SQR(target.y)) / (2 * l1 * l2));
+        const T alpha = acos((SQR(x_prime) + SQR(target.y) + SQR(l1) - SQR(l2)) / (2 * l1 * sqrt(SQR(target.y) + SQR(x_prime))));
 
         angle_arr[0] = config[0].constraints.limit(atan2(target.z, target.x));
-        angle_arr[2] = -acos((x_prime * x_prime + target.y * target.y - l1 * l1 - l2 * l2) / (2 * l1 * l2));
-        angle_arr[1] = atan2(target.y, x_prime) + atan2(l2 * sin(angle_arr[2]), (l1 + l2 * cos(angle_arr[2])));
+        angle_arr[1] = gamma + alpha;
+        angle_arr[2] = beta - M_PI;
 
         _Vector3D<T> pos;
         forward(angle_arr, pos);
