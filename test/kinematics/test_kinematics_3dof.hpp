@@ -4,7 +4,7 @@
     _RUN_TEST(test_planar_kinematics_3dof_forward2); \
     _RUN_TEST(test_planar_kinematics_3dof_inverse); \
     _RUN_TEST(test_planar_kinematics_3dof_inverse1); \
-    _RUN_TEST(test_planar_kinematics_3dof_inverse2); \
+    _RUN_TEST(test_planar_kinematics_3dof_inverse2);
 
 
 PlanarJoint_t joints_3dof[] = {
@@ -70,12 +70,15 @@ void test_planar_kinematics_3dof_inverse() {
 
     real_t prev_angles[] = {0, 0, 0};
     real_t angles[] = {0, 0, 0};
+    Vector3D target(40, 90, -10);
+    Vector3D actual;
     
-    real_t error = k.inverse(Vector3D(40, 90, -10), prev_angles, angles, 1, 10); 
+    bool done = k.inverse(target, prev_angles, angles, actual, 1, 10); 
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[0], -.24497);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[1], 2.11945);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[2], -1.76532);
-    TEST_ASSERT_FLOAT_WITHIN(1e-3, error, 0);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, (target - actual).magnitudeSqr(), 0);
+    TEST_ASSERT_TRUE(done);
 }
 
 void test_planar_kinematics_3dof_inverse1() {
@@ -85,14 +88,16 @@ void test_planar_kinematics_3dof_inverse1() {
     real_t angles[] = {.13, -.3, -.1};
     real_t ik_angles[] = {0, 0, 0};
     Vector3D fw;
+    Vector3D actual;
 
     k.forward(angles, fw);
-    real_t error = k.inverse(fw, prev_angles, ik_angles, 1, 10); 
+    bool done = k.inverse(fw, prev_angles, ik_angles, actual, 1, 10); 
 
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[0], ik_angles[0]);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[1], ik_angles[1]);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[2], ik_angles[2]);
-    TEST_ASSERT_FLOAT_WITHIN(1e-3, error, 0);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, (fw - actual).magnitudeSqr(), 0);
+    TEST_ASSERT_TRUE(done);
 }
 
 void test_planar_kinematics_3dof_inverse2() {
@@ -102,12 +107,14 @@ void test_planar_kinematics_3dof_inverse2() {
     real_t angles[] = {-.7, .3, -.5};
     real_t ik_angles[] = {0, 0, 0};
     Vector3D fw;
+    Vector3D actual;
 
     k.forward(angles, fw);
-    real_t error = k.inverse(fw, prev_angles, ik_angles, 1, 10); 
+    bool done = k.inverse(fw, prev_angles, ik_angles, actual, 1, 10); 
 
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[0], ik_angles[0]);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[1], ik_angles[1]);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, angles[2], ik_angles[2]);
-    TEST_ASSERT_FLOAT_WITHIN(1e-3, error, 0);
+    TEST_ASSERT_FLOAT_WITHIN(1e-6, (fw - actual).magnitudeSqr(), 0);
+    TEST_ASSERT_TRUE(done);
 }

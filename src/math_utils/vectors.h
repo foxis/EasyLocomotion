@@ -235,6 +235,7 @@ public:
 
 	inline T* data() { return container._data(); }
 	inline const T* data() const { return container._data(); }
+	inline T val(size_t row) const { return *(container._data() + row); }
 };
 
 template <typename T> class _Vector2D : public _Vector<T, 2>, protected _DataContainerBase<T> {
@@ -258,7 +259,7 @@ public:
 		this->_copy(arr, 2);
 	}
 	_Vector2D(const _Vector<T, 2> & v) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
-		this->_copy(v.container, 2);
+		this->_copy(v.data(), 2);
 	}
 	_Vector2D(const _Vector2D<T> & v) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
 		this->_copy(v.container, 2);
@@ -332,7 +333,7 @@ public:
 		this->_copy(arr, 3);
 	}
 	_Vector3D(const _Vector<T, 3> & v) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
-		this->_copy(v.container, 3);
+		this->_copy(v.data(), 3);
 	}
 	_Vector3D(const _Vector3D<T> & v) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
 		this->_copy(v.container, 3);
@@ -353,9 +354,16 @@ public:
 
 	_Vector3D<T> cross(const _Vector<T, 3>& b) const
 	{
- 		return _Vector3D<T>(y * b.data()[2] - z * b.data()[1],
-			z * b.data()[0] - x * b.data()[2],
-			x * b.data()[1] - y * b.data()[0]);
+		_Vector3D<T> tmp;
+		cross(b, tmp);
+ 		return tmp;
+	}
+
+	void cross(const _Vector<T, 3>& b, _Vector<T, 3> & result) const
+	{
+ 		result.x = y * b.data()[2] - z * b.data()[1];
+		result.y = z * b.data()[0] - x * b.data()[2];
+		result.z = x * b.data()[1] - y * b.data()[0];
 	}
 
 	static bool refraction(const _Vector<T, 3>& normal, const _Vector<T, 3>& v, T ni, T nt, _Vector3D<T> & result)
@@ -415,13 +423,13 @@ public:
 		this->_copy(arr, 4);
 	}
 	_Vector4D(const _Vector<T, 4> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
-		this->_copy(v.container, 4);
+		this->_copy(v.data(), 4);
 	}
 	_Vector4D(const _Vector4D<T> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
 		this->_copy(v.container, 4);
 	}
 	_Vector4D(const _Vector<T, 3> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
-		this->_copy(v.container, 3);
+		this->_copy(v.data(), 3);
 		this->w = 1;
 	}
 

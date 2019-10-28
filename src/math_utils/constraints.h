@@ -67,6 +67,14 @@ public:
 		return (min + max) / 2.0;
 	}
 
+	void sort() {
+		T mn, mx;
+		mn = min(this->min, this->max);
+		mx = max(this->min, this->max);
+		this->min = mn;
+		this->max = mx;
+	}
+
 	T min, max;
 };
 
@@ -121,6 +129,18 @@ public:
 
 	inline _Vector2D<T> middle() const {
 		return _Vector2D<T>((min.x + max.x) / 2.0, (min.y + max.y) / 2.0);
+	}
+
+	void sort() {
+		T mn, mx;
+		mn = min(this->min.x, this->max.x);
+		mx = max(this->min.x, this->max.x);
+		this->min.x = mn;
+		this->max.x = mx;
+		mn = min(this->min.y, this->max.y);
+		mx = max(this->min.y, this->max.y);
+		this->min.y = mn;
+		this->max.y = mx;
 	}
 
 	_Vector2D<T> min, max;
@@ -186,6 +206,22 @@ public:
 
 	inline _Vector3D<T> middle() const {
 		return _Vector3D<T>((min.x + max.x) / 2.0, (min.y + max.y) / 2.0, (min.z + max.z) / 2.0);
+	}
+
+	void sort() {
+		T mn, mx;
+		mn = min(this->min.x, this->max.x);
+		mx = max(this->min.x, this->max.x);
+		this->min.x = mn;
+		this->max.x = mx;
+		mn = min(this->min.y, this->max.y);
+		mx = max(this->min.y, this->max.y);
+		this->min.y = mn;
+		this->max.y = mx;
+		mn = min(this->min.z, this->max.z);
+		mx = max(this->min.z, this->max.z);
+		this->min.z = mn;
+		this->max.z = mx;
 	}
 
 	_Vector3D<T> min, max;

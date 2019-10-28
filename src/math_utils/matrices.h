@@ -174,21 +174,19 @@ public:
         }
     }
 
-    template<size_t K>
-    void mul_mat(const _Vector<T, K> & m, _Matrix<T, K, K> & dst) const {
-        static_assert(N != K || M != K, "Wrong diagonal matrix rank");
+    void mul_mat(const _Vector<T, N> & m, _Matrix<T, N, N> & dst) const {
+        static_assert(N == M, "Matrix must be square");
 		
-        for(size_t i = 0; i < K; i++)
-            for(size_t j = 0; j < K; j++)
+        for(size_t i = 0; i < N; i++)
+            for(size_t j = 0; j < N; j++)
                 *dst.data(i, j) = val(i, j) * m.data()[j];
     }
 
-    template<size_t K>
-    void mul_mat(const _Vector<T, K> & m) {
-        static_assert(N != K || M != K, "Wrong diagonal matrix rank");
+    void mul_mat(const _Vector<T, N> & m) {
+        static_assert(N == M, "Matrix must be square");
 		
-        for(size_t i = 0; i < K; i++)
-            for(size_t j = 0; j < K; j++)
+        for(size_t i = 0; i < N; i++)
+            for(size_t j = 0; j < N; j++)
                 *data(i, j) *= m.data()[j];
     }
 
@@ -291,7 +289,7 @@ public:
     ///
     /// Moore–Penrose inverse
     ///
-    virtual pinv(_Matrix<T, N, N> & dst, T eps=1e-9) const {
+    virtual bool pinv(_Matrix<T, N, N> & dst, T eps=1e-9) const {
         _DataContainerDynamic<T, N * M> Ucont;
         _DataContainerDynamic<T, M * M> Vcont;
         _DataContainerDynamic<T, M> Wcont;
@@ -301,7 +299,8 @@ public:
         _Vector<T, M> W(Wcont);
         _Vector<T, M> Rv(Rcont);
 
-        svd(U, W, V, Rv);
+        if (!svd(U, W, V, Rv))
+            return false;
         for (size_t i = 0; i < M; i++) {
             const T tmp = W.val(i);
             if (fabs(tmp) > eps)
@@ -309,8 +308,9 @@ public:
         }
         V.transpose();
         U.transpose();
-        V.mul_mat<M>(W);
-        V.mul_mat<N>(U, dst);
+        V.mul_mat(W);
+        V.mul_mat(U, dst);
+        return true;
     }
 
     // SVD 'Singular Value Decomposition'
@@ -320,7 +320,7 @@ public:
     // U 
     // W - diagonal matrix (vector of diagonal elements)
     // Rv1 is a vector to store temporary values
-    void svd(_Matrix<T, N, M> & U, _Vector<T, M> & W, _Matrix<T, M, M> & V, _Vector<T, M> & Rv1) const {
+    bool svd(_Matrix<T, N, M> & U, _Vector<T, M> & W, _Matrix<T, M, M> & V, _Vector<T, M> & Rv1) const {
         bool flag;
         size_t i, its, j, jj, k, l, nm;
         T anorm, c, f, g, h, s, scale, x, y, z;
@@ -797,6 +797,15 @@ public:
         rotation_z(theta, *this);
     }
 
+    void rotation(const Vector<T, 3> & angles) {
+        Matrix3x3<T> Ry, Rz;
+        this->rotation_x(angles.x);
+        Ry.rotation_y(angles.y);
+        Rz.rotation_z(angles.z);
+        *this *= Ry;
+        *this *= Rz;
+    }
+
     void rotation_x(T theta, _Matrix<T, 3, 3> & dst) const {
         T *p = dst.data();
         T c = cos(theta);
@@ -881,17 +890,26 @@ public:
 	_Matrix4x4(T c) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
         this->_fill(c, 16);
     }
-	_Matrix4x4(T a, T b, T c, T d, T e, T f, T g, T h, T i) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
+	_Matrix4x4(T a11, T a12, T a13, T a14, T a21, T a22, T a23, T a24, 
+               T a31, T a32, T a33, T a34, T a41, T a42, T a43, T a44) 
+        : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
         T * p = this->data(); 
-		*(p++) = a;
-		*(p++) = b;
-		*(p++) = c;
-		*(p++) = d;
-		*(p++) = e;
-		*(p++) = f;
-		*(p++) = g;
-		*(p++) = h;
-		*(p++) = i;
+		*(p++) = a11;
+		*(p++) = a12;
+		*(p++) = a13;
+		*(p++) = a14;
+		*(p++) = a21;
+		*(p++) = a22;
+		*(p++) = a23;
+		*(p++) = a24;
+		*(p++) = a31;
+		*(p++) = a32;
+		*(p++) = a33;
+		*(p++) = a34;
+		*(p++) = a41;
+		*(p++) = a42;
+		*(p++) = a43;
+		*(p++) = a44;
 	}
 	_Matrix4x4(const T * data) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
         this->_copy(data, 16);
@@ -903,7 +921,11 @@ public:
         this->_copy(m.container, 16);
     }
 
-    void operator = (const _Matrix3x3<T> & m) {
+    void operator = (const _Matrix<T, 3, 3> & m) {
+        rotation(m);
+    }
+
+    void rotation(const _Matrix<T, 3, 3> & m) {
         const T * sp = m.data();
         T * dp = this->data();
         *(dp++) = *(sp++);
@@ -917,11 +939,33 @@ public:
         *(dp++) = *(sp++);
         *(dp++) = *(sp++);
         *(dp++) = *(sp++);
-        *(dp++) = 0;
-        *(dp++) = 0;
-        *(dp++) = 0;
-        *(dp++) = 0;
-        *(dp++) = 1;
+    }
+    void scale(const _Vector<T, 3> & v) {
+        const T * sp = v.data();
+        T * dp = this->data() + 4 * 3;
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+        *(dp++) = *(sp++);
+    }
+    void translation(const _Vector<T, 3> & v) {
+        const T * sp = v.data();
+        T * dp = this->data() + 3;
+        *dp = *(sp++); dp += 4;
+        *dp = *(sp++); dp += 4;
+        *dp = *(sp++);
+    }
+
+    void affine(const _Vector<T, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
+        _Matrix3x3<T> R;
+        R.rotation(rot);
+        affine(R, trans, scale);
+    }
+
+    void affine(const _Matrix<T, 3, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
+        this->rotation(R);
+        this->translation(trans);
+        this->scale(scale);
+        this->data(3, 3) = 1;
     }
 
     _Matrix4x4 operator + (const _Matrix<T, 4, 4> & m) const {

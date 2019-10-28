@@ -38,7 +38,7 @@ struct _GeneralJoint_t {
     _Vector3<T> segment;
 };
 
-template<typename T, size_t DOF> class _GeneralKinematics : public _KinematicsModel<T> {
+template<typename T, size_t DOF> class _GeneralKinematics : public _LimbKinematicsModel<T> {
 public:
     const _GeneralJoint_t<T> * config;
     const _ConstraintVolume<T>& working_space;
@@ -75,7 +75,7 @@ public:
         return true;
     }
 
-    virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) {
+    virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) {
         #if defined IK_SOLVER_CCD
         #elif IK_SOLVER_JACOBIAN
         #error Jacobian IK Solver not implemented
@@ -84,6 +84,8 @@ public:
         #endif
     }
 
+    virtual size_t dof() const { return DOF; }
+    virtual _ConstraintVolume<T> target_space() const { return working_space; }
 };
 
 typedef _PlanarJoint_t<real_t> PlanarJoint_t;

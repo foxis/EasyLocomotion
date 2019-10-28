@@ -22,7 +22,7 @@
 
 namespace Locomotion {
 
-template<typename T> class _PlanarKinematics<T, 3> : public _KinematicsModel<T> {
+template<typename T> class _PlanarKinematics<T, 3> : public _LimbKinematicsModel<T> {
 public:
     const _PlanarJoint_t<T> * config;
     const _ConstraintVolume<T> & working_space;
@@ -55,7 +55,7 @@ public:
         return true;
     }
 
-    virtual T inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, T eps, size_t max_iterations) {
+    virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) {
         const T l0 = config[0].length;
         const T l1 = config[1].length;
         const T l2 = config[2].length;
@@ -68,10 +68,12 @@ public:
         angle_arr[1] = gamma + alpha;
         angle_arr[2] = beta - M_PI;
 
-        _Vector3D<T> pos;
-        forward(angle_arr, pos);
-        return (target - pos).magnitudeSqr();
+        forward(angle_arr, actual);
+        return true;
     }
+
+    virtual size_t dof() const { return 3; }
+    virtual _ConstraintVolume<T> target_space() const { return working_space; }
 };
 
 typedef _PlanarKinematics<real_t, 3> PlanarKinematics3DOF;

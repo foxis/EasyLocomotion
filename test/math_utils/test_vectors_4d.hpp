@@ -4,6 +4,7 @@
     _RUN_TEST(test_vectors4D_constructor3); \
     _RUN_TEST(test_vectors4D_constructor4); \
     _RUN_TEST(test_vectors4D_assign); \
+    _RUN_TEST(test_vectors4D_assign_3d); \
     _RUN_TEST(test_vectors4D_add); \
     _RUN_TEST(test_vectors4D_sub); \
     _RUN_TEST(test_vectors4D_mul); \
@@ -58,6 +59,17 @@ void test_vectors4D_assign() {
     TEST_ASSERT_EQUAL(v.y, 5);
     TEST_ASSERT_EQUAL(v.z, 1);
     TEST_ASSERT_EQUAL(v.w, 0);
+}
+
+void test_vectors4D_assign_3d() {
+    Vector3D data(4, 5, 2);
+    Vector4D v;
+
+    v = data;
+    TEST_ASSERT_EQUAL(v.x, 4);
+    TEST_ASSERT_EQUAL(v.y, 5);
+    TEST_ASSERT_EQUAL(v.z, 2);
+    TEST_ASSERT_EQUAL(v.w, 1);
 }
 
 void test_vectors4D_add() {
