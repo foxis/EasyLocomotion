@@ -4,6 +4,8 @@
     _RUN_TEST(test_vectors2D_constructor3); \
     _RUN_TEST(test_vectors2D_constructor4); \
     _RUN_TEST(test_vectors2D_assign); \
+    _RUN_TEST(test_vectors2D_assign_data); \
+    _RUN_TEST(test_vectors2D_assign_value); \
     _RUN_TEST(test_vectors2D_add); \
     _RUN_TEST(test_vectors2D_sub); \
     _RUN_TEST(test_vectors2D_mul); \
@@ -53,6 +55,24 @@ void test_vectors2D_assign() {
     v = data;
     TEST_ASSERT_EQUAL(v.x, 4);
     TEST_ASSERT_EQUAL(v.y, 5);
+}
+
+void test_vectors2D_assign_data() {
+    Vector2D v;
+
+    v.data()[0] = 1;
+    v.data()[1] = 2;
+    TEST_ASSERT_EQUAL(v.x, 1);
+    TEST_ASSERT_EQUAL(v.y, 2);
+}
+
+void test_vectors2D_assign_value() {
+    Vector2D v;
+
+    v.x = 1;
+    v.y = 2;
+    TEST_ASSERT_EQUAL(v.data()[0], 1);
+    TEST_ASSERT_EQUAL(v.data()[1], 2);
 }
 
 void test_vectors2D_add() {

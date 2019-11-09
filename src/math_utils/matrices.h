@@ -21,6 +21,7 @@
 #define MATH_UTILS_MATRICES_H
 
 #include "vectors.h"
+#include <type_traits>
 
 namespace Locomotion {
 
@@ -72,6 +73,55 @@ public:
     }
     void operator /= (T c) {
         div(c);
+    }
+
+    template<size_t row=0, size_t col=0, size_t NN, size_t MM>
+    void get_submatrix(_Matrix<T, NN, MM> & m) const {
+        static_assert(NN <= N && MM <= M, "Target matrix cannot be bigger than the source matrix");
+        static_assert(row + NN <= N && col + MM <= M, "Target matrix cannot go outside the source matrix");
+        T * dst = m.data();
+        for (size_t i = 0; i < NN; i++) {
+            const T * src = this->row(i + row) + col;
+            for (size_t j = 0; j < MM; j++) {
+                *dst = *src;
+                ++dst;
+                ++src;
+            }
+        }
+    }
+    template<size_t row=0, size_t col=0, size_t NN, size_t MM>
+    void set_submatrix(const _Matrix<T, NN, MM> & m) {
+        static_assert(NN <= N && MM <= M, "Target matrix cannot be bigger than the source matrix");
+        static_assert(row + NN <= N && col + MM <= M, "Target matrix cannot go outside the source matrix");
+        const T * src = m.data();
+        for (size_t i = 0; i < NN; i++) {
+            T * dst = this->row(i + row) + col;
+            for (size_t j = 0; j < MM; j++) {
+                *dst = *src;
+                ++dst;
+                ++src;
+            }
+        }
+    }
+
+    void get_diagonal(_Vector<T, N> & m) const {
+        for (size_t i = 0; i < min(M, N); i++)
+            m.data()[i] = this->val(i, i);
+    }
+    void set_diagonal(const _Vector<T, N> & m) {
+        for (size_t i = 0; i < min(M, N); i++)
+            this->row(i)[i] = m.val(i);
+    }
+
+    template <typename Dummy = void>
+    auto get_diagonal(_Vector<T, M> & m) const -> typename std::enable_if<N != M, Dummy>::type {
+        for (size_t i = 0; i < min(M, N); i++)
+            m.data()[i] = this->val(i, i);
+    }
+    template <typename Dummy = void>
+    auto set_diagonal(const _Vector<T, M> & m) -> typename std::enable_if<N != M, Dummy>::type {
+        for (size_t i = 0; i < min(M, N); i++)
+            this->row(i)[i] = m.val(i);
     }
 
     void add(const _Matrix<T, N, M> & m) {
@@ -155,36 +205,27 @@ public:
     }
 
     template<size_t K>
-    void mul_mat(const _Matrix<T, N, K> & m, _Matrix<T, M, K> & dst) const {
-        T *pd = dst.data();
-		
-        for (size_t j = 0; j < N; j++) {
-            for (size_t i = 0; i < K; i++) {
+    void mul_mat(const _Matrix<T, M, K> & m, _Matrix<T, N, K> & dst) const {
+        for (size_t i = 0; i < N; i++) {
+            for (size_t j = 0; j < K; j++) {
                 T acc = 0;
-                const T *A = data() + j * M;
-                const T *B = m.data() + i;
-                for (size_t m = 0; m < M; m++) {
-                    acc += *A * *B;
-                    ++A;
-                    B += K;
-                }
-                *pd = acc;
-                ++pd;
+                for (size_t k = 0; k < M; k++)
+                    acc += this->val(i, k) * m.val(k, j);
+                dst.row(i)[j] = acc;
             }
         }
     }
 
-    void mul_mat(const _Vector<T, N> & m, _Matrix<T, N, N> & dst) const {
-        static_assert(N == M, "Matrix must be square");
-		
+    // multiply this matrix by a diagonal matrix stored in a vector
+    template <typename Dummy = void>
+    auto mul_mat(const _Vector<T, N> & m, _Matrix<T, N, N> & dst) const  -> typename std::enable_if<N == M, Dummy>::type {
         for(size_t i = 0; i < N; i++)
             for(size_t j = 0; j < N; j++)
                 *dst.data(i, j) = val(i, j) * m.data()[j];
     }
 
-    void mul_mat(const _Vector<T, N> & m) {
-        static_assert(N == M, "Matrix must be square");
-		
+    template <typename Dummy = void>
+    auto mul_mat(const _Vector<T, N> & m)  -> typename std::enable_if<N == M, Dummy>::type {
         for(size_t i = 0; i < N; i++)
             for(size_t j = 0; j < N; j++)
                 *data(i, j) *= m.data()[j];
@@ -232,12 +273,13 @@ public:
             for (size_t j = 0; j < M; j++) {
                 *p = *src;
                 ++src;
-                p += M;
+                p += N;
             }
         }
     }
-    void transpose() {
-        static_assert(N == M, "Must be square matrix");
+
+    template <typename Dummy = void>
+    auto transpose() -> typename std::enable_if<N == M, Dummy>::type {
         for (size_t i = 0; i < N - 1; i++) {
             for (size_t j = i + 1; j < N; j++) {
                 T tmp = val(i, j);
@@ -249,9 +291,8 @@ public:
 
     ///
     /// Determinant only valid for square matrix
-    /// 
+    /// Undefined behavior for non square matrices
     virtual T det() const {
-        static_assert(N == M, "Must be square matrix");
         _DataContainerBase<T> * tmp_cont = container._clone();
         _Matrix<T, N, N> tmp(*tmp_cont);
 
@@ -279,52 +320,81 @@ public:
 
     ///
     /// Inverse only valid for square matrix
-    /// 
+    /// Undefined behavior for non square matrices 
     virtual bool inverse(_Matrix<T, N, N> & dst) const {
-        static_assert(N == M, "Must be square matrix");
         // Not implemented
         return false;
     }
 
     ///
     /// Moore–Penrose inverse
-    ///
-    virtual bool pinv(_Matrix<T, N, N> & dst, T eps=1e-9) const {
-        _DataContainerDynamic<T, N * M> Ucont;
+    /// A = UWVt
+    /// Ax = VWxUt
+    /// Note: Destroys original matrix
+    template <typename Dummy = bool>
+    auto pinv(_Matrix<T, M, N> & dst, T eps=1e-9) -> typename std::enable_if<(N <= M), Dummy>::type {
+        _DataContainerDynamic<T, N * N> Ucont;
+        _DataContainerDynamic<T, N * M> Xcont;
+        _DataContainerDynamic<T, N * M> Wxcont;
+        _DataContainerDynamic<T, M * N> VWxcont;
         _DataContainerDynamic<T, M * M> Vcont;
-        _DataContainerDynamic<T, M> Wcont;
-        _DataContainerDynamic<T, N * M> Rcont;
-        _Matrix<T, N, M> U(Ucont);
+        _DataContainerDynamic<T, M> wcont;
+        _DataContainerDynamic<T, M> Rcont;
+
+        _Matrix<T, N, N> U(Ucont);
         _Matrix<T, M, M> V(Vcont);
-        _Vector<T, M> W(Wcont);
+        _Matrix<T, M, N> Wx(Wxcont, 0.0);
+
+        _Vector<T, M> w(wcont);
+        _Matrix<T, M, N> X(Xcont);
         _Vector<T, M> Rv(Rcont);
 
-        if (!svd(U, W, V, Rv))
+        _Matrix<T, M, N> VWx(VWxcont);
+
+        if (!svd(U, w, V, Rv, X))
             return false;
         for (size_t i = 0; i < M; i++) {
-            const T tmp = W.val(i);
+            const T tmp = w.val(i);
             if (fabs(tmp) > eps)
-                W.data()[i] = 1.0 / tmp;
+                w.data()[i] = 1.0 / tmp;
+            else
+                w.data()[i] = 0.0;
         }
-        V.transpose();
+        Wx.set_diagonal(w);
         U.transpose();
-        V.mul_mat(W);
-        V.mul_mat(U, dst);
+        V.mul_mat(Wx, VWx);
+        VWx.mul_mat(U, dst);
         return true;
     }
 
-    // SVD 'Singular Value Decomposition'
-    // W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery
-    // 'Numerical Recipes in C'
-    // A = UWVT
-    // U 
-    // W - diagonal matrix (vector of diagonal elements)
-    // Rv1 is a vector to store temporary values
-    bool svd(_Matrix<T, N, M> & U, _Vector<T, M> & W, _Matrix<T, M, M> & V, _Vector<T, M> & Rv1) const {
+    template <typename Dummy = bool>
+    auto pinv(_Matrix<T, M, N> & dst, T eps=1e-9) -> typename std::enable_if<(N > M), Dummy>::type {
+        _DataContainerStatic<T, N * M> Atcont;
+        _Matrix<T, M, N> At(Atcont);
+        this->transpose(At);
+        if (!At.pinv(*this, eps))
+            return false;
+        this->transpose(dst);
+        return true;
+    }
+
+    /// SVD 'Singular Value Decomposition'
+    /// W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery
+    /// 'Numerical Recipes in C'
+    /// A = UWVT
+    /// U 
+    /// W - diagonal matrix (vector of diagonal elements)
+    /// Rv1 is a vector to store temporary values
+    /// X is a matrix to store temporary values
+    /// Note: Destroys original matrix. Works only on M >= N matrices.
+    template <typename Dummy = bool>
+    auto svd(_Matrix<T, N, N> & U, _Vector<T, M> & W, _Matrix<T, M, M> & V, _Vector<T, M> & Rv1, _Matrix<T, M, N> & X) -> typename std::enable_if<N <= M, Dummy>::type {
+        size_t i, its, j, jj, k, l, nm, _NN;
         bool flag;
-        size_t i, its, j, jj, k, l, nm;
         T anorm, c, f, g, h, s, scale, x, y, z;
-        U = *this;
+        T *_x, *_y;
+        #define __PARALLEL_N 4
+        T p[__PARALLEL_N];
 
         g = scale = anorm = 0.0;  // Householder reduction to bidiagonal form
         for(i = 0; i < M; i++)
@@ -335,152 +405,249 @@ public:
             if(i < N)
             {
                 for(k = i; k < N; k++) 
-                    scale += fabs(U.val(k, i));
+                    scale += fabs(this->val(k, i));
 
                 if(scale)
                 {
                     for(k = i; k < N; k++)
-                    {
-                        *U.data(k, i) /= scale;
-                        s += U.val(k, i) * U.val(k, i);
-                    }
-                    f = U.val(i, i);
+                        s += SQR((this->row(k)[i] /= scale));
+                    f = *(_x = this->row(i) + i);
                     g = -SIGN(sqrt(s), f);
                     h = f * g - s;
-                    *U.data(i, i) = f - g;
+                    *_x = f - g;
                     for(j = l; j < M; j++)
                     {
                         for(s = 0.0, k = i; k < N; k++) 
-                            s += U.val(k, i) * U.val(k, j);
+                        {
+                            _x = this->row(k);
+                            s += (_x[i]) * (_x[j]);
+                        }
                         f = s / h;
                         for(k = i; k < N; k++) 
-                            *U.data(k, j) += f * U.val(k, i);
+                        {
+                            _x = this->row(k);
+                            _x[j] += f * _x[i];
+                        }
                     }
                     for(k = i; k < N; k++) 
-                        *U.data(k, i) *= scale;
+                        *this->data(k, i) *= scale;
                 }
             }
             W.data()[i] = scale * g;
             g = s = scale = 0.0;
             if(i < N && i != (M - 1))
             {
+                _x = this->row(i) + l;
                 for(k = l; k < M; k++) 
-                    scale += fabs(U.val(i, k));
-                if(scale)
-                {
-                    for(k = l; k < M; k++)
-                    {
-                        *U.data(i, k) /= scale;
-                        s += U.val(i, k) * U.val(i, k);
-                    }
-                    f = U.val(i, l);
-                    g = -SIGN(sqrt(s), f);
-                    h = f * g - s;
-                    *U.data(i, l) = f - g;
-                    for(k = l; k < M; k++) 
-                        Rv1.data()[k] = U.val(i, k) / h;
+                    scale += fabs(*(_x++));
 
-                    for(j = l; j < N; j++)
+                if(scale==0)
+                    continue;
+
+                _x = this->row(i) + l;
+                for(k = l; k < M; k++)
+                    s += SQR((*(_x++) /= scale));
+
+                f = *(_x = this->row(i) + l);
+                g = -SIGN(sqrt(s), f);
+                h = f * g - s;
+                *_x = f - g;
+                _x = this->row(i) + l;
+                _y = Rv1.data() + l;
+                for(k = l; k < M; k++) 
+                    *(_y++) = *(_x++) / h;
+
+                for(j = l; j < N; j++)
+                {
+                    _x = this->row(j) + l;
+                    _y = this->row(i) + l;
+                    _NN = M - l;
+
+                    for(s = 0.0, k = l; k < M; k++) 
+                        s += *(_x++) * *(_y++);
+
+                    _x = this->row(j) + l;
+                    _y = Rv1.data() + l;
+                    for(k = 0; k < (_NN % __PARALLEL_N); k++) 
+                        *(_x++) += s * *(_y++);
+
+                    for(; k < _NN; k += __PARALLEL_N) 
                     {
-                        for(s = 0.0, k = l; k < M; k++) 
-                            s += U.val(j, k) * U.val(i, k);
-                        for(k = l; k < M; k++) 
-                            *U.data(j, k) += s * Rv1.data()[k];
+                        *(_x++) += s * *(_y++);
+                        *(_x++) += s * *(_y++);
+                        *(_x++) += s * *(_y++);
+                        *(_x++) += s * *(_y++);
                     }
-                    for(k = l; k < M; k++) 
-                        *U.data(i, k) *= scale;
                 }
+                _y = this->row(i) + l;
+                for(k = l; k < M; k++) 
+                    *(_y++) *= scale;
             }
-            anorm = FMAX(anorm, (fabs(W.data()[i]) + fabs(Rv1.data()[i])));
+            anorm = FMAX(anorm, (fabs(W.val(i)) + fabs(Rv1.val(i))));
         }
 
-        for(i = (M - 1); i >= 0; i--)
+        for(i = (M - 1); i >= 0 && i < N * M; i--)
         { // Accumulation of right-hand transformation
             if(i < (M - 1))
             {
                 if(g)
                 {
+                    const T tmp = (this->val(i, l) * g);
+                    _x = this->row(i) + l;
+                    _y = V.row(i) + l;
                     for(j = l; j < M; j++)
-                        *V.data(j, i) = (U.val(i, j) / U.val(i, l)) / g;
+                        *(_y++) = *(_x++) / tmp;
+
                     for(j = l; j < M; j++)
                     {
-                        for(s = 0.0, k = l; k < M; k++) 
-                            s += U.val(i, k) * V.val(k, j);
-                        for(k = l; k < M; k++) 
-                            *V.data(k, j) += s * V.val(k, i);
+                        _x = this->row(i) + l;
+                        _y = V.row(j) + l;
+                        _NN = M - l;
+                        memset(p, 0, sizeof(p));
+                        for(k = 0, s=0; k < (_NN % __PARALLEL_N); k++) 
+                            s += *(_x++) * *(_y++);
+                        
+                        for(; k < _NN; k += __PARALLEL_N) 
+                        {
+                            p[0] += *(_x++) * *(_y++);
+                            p[1] += *(_x++) * *(_y++);
+                            p[2] += *(_x++) * *(_y++);
+                            p[3] += *(_x++) * *(_y++);
+                        }
+                        s += p[0] + p[1] + p[2] + p[3];
+                        _y = V.row(i) + l;
+                        _x = V.row(j) + l;
+                        for(k = 0; k < (_NN % __PARALLEL_N); k++) 
+                            *(_x++) += s * *(_y++);
+
+                        for(; k < _NN; k += __PARALLEL_N) 
+                        {
+                            *(_x++) += s * *(_y++);
+                            *(_x++) += s * *(_y++);
+                            *(_x++) += s * *(_y++);
+                            *(_x++) += s * *(_y++);
+                        }
                     }
                 }
                 for(j = l; j < M; j++) 
-                    *V.data(i, j) = *V.data(j, i) = 0.0;
+                    *V.data(j, i) = *V.data(i, j) = 0.0;
             }
             *V.data(i, i) = 1.0;
             g = Rv1.data()[i];
             l = i;
         }
 
-        for(i = (IMIN(N, M) - 1); i >= 0; i--)
+        //
+        this->transpose(X);
+
+        for(i = (IMIN(N, M) - 1); i >= 0 && i < N * M; i--)
         {    // Accumulation of left-hand
             l = i + 1;                                 // transformations
-            g = W.data()[i];
-            for(j = l; j < M; j++) 
-                *U.data(i, j) = 0.0;
+            g = W.val(i);
+            for (j = l; j < M; j++)
+                *X.data(j, i) = 0;
             if(g)
             {
                 g = 1.0 / g;
                 for(j = l; j < M; j++)
                 {
-                    for(s = 0.0, k = l; k < N; k++) 
-                        s += U.val(k, i) * U.val(k, j);
-                    f = (s / U.val(i, i)) * g;
-                    for(k = i; k < N; k++) 
-                        *U.data(k, j) += f * U.val(k, i);
+                    _x = X.row(i) + l;
+                    _y = X.row(j) + l;
+                    _NN = N - l;
+                    for(k = 0; k < (_NN % __PARALLEL_N); k++) 
+                        p[k] = *(_x++) * *(_y++);
+
+                    memset(p + k, 0, sizeof(T) * (__PARALLEL_N - k));
+                    for(; k < _NN; k += __PARALLEL_N ) 
+                    {
+                        p[0] += *(_x++) * *(_y++);
+                        p[1] += *(_x++) * *(_y++);
+                        p[2] += *(_x++) * *(_y++);
+                        p[3] += *(_x++) * *(_y++);
+                    }
+                    f = ((p[0] + p[1] + p[2] + p[3]) / X.val(i, i)) * g;
+                    _x = X.row(i) + i;
+                    _y = X.row(j) + i;
+                    _NN = N - i;
+                    for(k = 0; k < (_NN % __PARALLEL_N); k++) 
+                        *(_y++) += f * *(_x++);
+
+                    for(; k < _NN; k += __PARALLEL_N ) 
+                    {
+                        *(_y++) += f * *(_x++);
+                        *(_y++) += f * *(_x++);
+                        *(_y++) += f * *(_x++);
+                        *(_y++) += f * *(_x++);
+                    }
                 }
+                _x = X.row(i) + i;
                 for(j = i; j < N; j++) 
-                    *U.data(j, i) *= g;
+                    *(_x++) *= g;
             }
             else 
-                for(j = i; j < N; j++) 
-                    *U.data(j, i) = 0.0;
-            ++(*U.data(i, i));
+                memset(X.row(i) + i, 0, sizeof(N - i));
+            ++(*X.data(i, i));
         }
 
-        for(k = M - 1; k >= 0; k--)
+        for(k = M - 1; k >= 0 && k < N * M; k--)
         {      // Diagonalization of the bidiagonal form: Loop over
             for(its = 1; its <= 30; its++)
             { // singular values, and over allowed iterations
                 flag = true;
-                for(l = k; l >= 0; l--)
+                for(l = k; l >= 0 && l < N * M; l--)
                 { // Test for splitting
                     nm = l - 1;
-                    if((T)(fabs(Rv1.data()[l]) + anorm) == anorm)
+                    if((T)(fabs(Rv1.val(l)) + anorm) == anorm)
                     {
                         flag = false;
                         break;
                     }
-                    if((T)(fabs(W.data()[nm]) + anorm) == anorm) 
+                    if((T)(fabs(W.val(nm)) + anorm) == anorm) 
                         break;
                 }
+
                 if(flag)
                 {
                     c = 0.0;  //  Cancellation of Rv1.x[l], if l > 0
                     s = 1.0;
                     for(i = l; i <= k; i++)
                     {
-                        f = s * Rv1.data()[i];
-                        Rv1.data()[i] = c * Rv1.data()[i];
+                        f = s * Rv1.val(i);
                         if((T)(fabs(f) + anorm) == anorm) break;
-                        g = W.data()[i];
+                        Rv1.data()[i] = c * Rv1.val(i);
+                        g = W.val(i);
                         h = pytag(f, g);
                         W.data()[i] = h;
                         h = 1.0 / h;
                         c = g * h;
                         s = -f * h;
-                        for(j = 0; j < N; j++)
+                        _x = X.row(nm);
+                        _y = X.row(i);
+                        for(j = 0; j < (N % __PARALLEL_N); j++) 
                         {
-                            y = U.val(j, nm);
-                            z = U.val(j, i);
-                            *U.data(j, nm) = y * c + z * s;
-                            *U.data(j, i) = z * c - y * s;
+                            const T y = *_x;
+                            const T z = *_y;
+                            *(_x++) = y * c + z * s;
+                            *(_y++) = z * c - y * s;
+                        }
+                        for(; j < N; j += __PARALLEL_N) 
+                        {
+                            {const T y = *_x;
+                            const T z = *_y;
+                            *(_x++) = y * c + z * s;
+                            *(_y++) = z * c - y * s;}
+                            {const T y = *_x;
+                            const T z = *_y;
+                            *(_x++) = y * c + z * s;
+                            *(_y++) = z * c - y * s;}
+                            {const T y = *_x;
+                            const T z = *_y;
+                            *(_x++) = y * c + z * s;
+                            *(_y++) = z * c - y * s;}
+                            {const T y = *_x;
+                            const T z = *_y;
+                            *(_x++) = y * c + z * s;
+                            *(_y++) = z * c - y * s;}
                         }
                     }
                 }
@@ -490,14 +657,14 @@ public:
                     if(z < 0.0)
                     {  // Singular value is made nonnegative
                         W.data()[k] = -z;
-                        for(j = 0; j < M; j++) 
-                            *V.data(j, k) = -V.val(j, k);
+                        _x = V.row(k);
+                        for(j = 0; j < M; j++) {
+                            *_x = -*_x;
+                            ++_x;
+                        }
                     }
                     break;
                 }
-                if(its == 50) 
-                    return false;
-
                 x = W.data()[l];
                 nm = k - 1;
                 y = W.data()[nm];
@@ -522,15 +689,36 @@ public:
                     g = g * c - x * s;
                     h = y * s;
                     y *= c;
-                    for(jj = 0; jj < M; jj++)
+                    _x = V.row(j);
+                    _y = V.row(i);
+                    for(jj = 0; jj < (M % __PARALLEL_N); jj++) 
                     {
-                        x = V.val(jj, j);
-                        z = V.val(jj, i);
-                        *V.data(jj, j) = x * c + z * s;
-                        *V.data(jj, i) = z * c - x * s;
+                        const T x = *_x;
+                        const T z = *_y;
+                        *(_x++) = x * c + z * s;
+                        *(_y++) = z * c - x * s;
+                    }
+                    for(; jj < M; jj += __PARALLEL_N) 
+                    {
+                        {const T x = *_x;
+                        const T z = *_y;
+                        *(_x++) = x * c + z * s;
+                        *(_y++) = z * c - x * s;}
+                        {const T x = *_x;
+                        const T z = *_y;
+                        *(_x++) = x * c + z * s;
+                        *(_y++) = z * c - x * s;}
+                        {const T x = *_x;
+                        const T z = *_y;
+                        *(_x++) = x * c + z * s;
+                        *(_y++) = z * c - x * s;}
+                        {const T x = *_x;
+                        const T z = *_y;
+                        *(_x++) = x * c + z * s;
+                        *(_y++) = z * c - x * s;}
                     }
                     z = pytag(f, h);
-                    W.data()[j] = z;   // Rotaion can be arbitrary if z = 0
+                    W.data()[j] = z;   // Rotation can be arbitrary if z = 0
                     if(z)
                     {
                         z = 1.0 / z;
@@ -539,12 +727,33 @@ public:
                     }
                     f = c * g + s * y;
                     x = c * y - s * g;
-                    for(jj = 0; jj < N; jj++)
+                    _x = X.row(j);
+                    _y = X.row(i);
+                    for(jj = 0; jj < (N % __PARALLEL_N); jj++) 
                     {
-                        y = U.val(jj, j);
-                        z = U.val(jj, i);
-                        *U.data(jj, j) = y * c + z * s;
-                        *U.data(jj, i) = z * c - y * s;
+                        const T y = *_x;
+                        const T z = *_y;
+                        *(_x++) = y * c + z * s;
+                        *(_y++) = z * c - y * s;
+                    }
+                    for(; jj < N; jj += __PARALLEL_N) 
+                    {
+                        {const T y = *_x;
+                        const T z = *_y;
+                        *(_x++) = y * c + z * s;
+                        *(_y++) = z * c - y * s;}
+                        {const T y = *_x;
+                        const T z = *_y;
+                        *(_x++) = y * c + z * s;
+                        *(_y++) = z * c - y * s;}
+                        {const T y = *_x;
+                        const T z = *_y;
+                        *(_x++) = y * c + z * s;
+                        *(_y++) = z * c - y * s;}
+                        {const T y = *_x;
+                        const T z = *_y;
+                        *(_x++) = y * c + z * s;
+                        *(_y++) = z * c - y * s;}
                     }
                 }
                 Rv1.data()[l] = 0.0;
@@ -552,38 +761,52 @@ public:
                 W.data()[k] = x;
             }
         }
+        if(its >= 30) 
+            return false;
+
+        X.transpose(*this);
+
+        V.transpose();
+        this->get_submatrix(U);
+
         return true;
+        #undef __PARALLEL_N
     }
 
     ///
     /// LU decomposition into two triangular matrices
     /// NOTE: Assume, that l&u matrices are set to zero
-    void lu(_Matrix<T, N, N> & l, _Matrix<T, N, N> & u) const {
+    template <typename Dummy = void>
+    auto lu(_Matrix<T, N, N> & L, _Matrix<T, N, N> & U) const -> typename std::enable_if<N == M, Dummy>::type {
         size_t i, j, k;
-        static_assert(N == M, "Must be square matrix");
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < N; j++) {
-                if (j >= i) {
-                    *l.data(j, i) = this->val(j, i);
-                    for (k = 0; k < i; k++) {
-                        *l.data(j, i) = l.val(j, i) - l.val(j, k) * u.val(k, i);
-                    }
-                } else {
-                    *l.data(j, i) = 0;
-                }
-            }
-            for (j = 0; j < N; j++) {
-                if (j < i)
-                    *u.data(i, j) = 0;
-                else if (j == i)
-                    *u.data(i, j) = 1;
-                else {
-                    *u.data(i, j) = this->val(i, j) / l.val(i, i);
-                    for (k = 0; k < i; k++)
-                        *u.data(i, j) = u.val(i, j) - ((l.val(i, k) * u.val(k, j)) / l.val(i, i));
-                }
-            }
-        }
+
+        for (i = 0; i < N; i++) { 
+            // Upper Triangular 
+            for (k = i; k < N; k++) { 
+                // Summation of L(i, j) * U(j, k) 
+                T sum = 0; 
+                for (j = 0; j < i; j++) 
+                    sum += L.val(i, j) * U.val(j, k); 
+    
+                // Evaluating U(i, k) 
+                *U.data(i, k) = this->val(i, k) - sum; 
+            } 
+    
+            // Lower Triangular 
+            for (k = i; k < N; k++) { 
+                if (i == k) 
+                    *L.data(i, i) = 1; // Diagonal as 1 
+                else { 
+                    // Summation of L(k, j) * U(j, i) 
+                    T sum = 0; 
+                    for (j = 0; j < i; j++) 
+                        sum += L.val(k, j) * U.val(j, i); 
+    
+                    // Evaluating L(k, i) 
+                    *L.data(k, i) = (this->val(k, i) - sum) / U.val(i, i); 
+                } 
+            } 
+        } 
     }
 
 private:
@@ -797,8 +1020,8 @@ public:
         rotation_z(theta, *this);
     }
 
-    void rotation(const Vector<T, 3> & angles) {
-        Matrix3x3<T> Ry, Rz;
+    void rotation(const _Vector<T, 3> & angles) {
+        _Matrix3x3<T> Ry, Rz;
         this->rotation_x(angles.x);
         Ry.rotation_y(angles.y);
         Rz.rotation_z(angles.z);
@@ -925,7 +1148,7 @@ public:
         rotation(m);
     }
 
-    void rotation(const _Matrix<T, 3, 3> & m) {
+    void set_rotation(const _Matrix<T, 3, 3> & m) {
         const T * sp = m.data();
         T * dp = this->data();
         *(dp++) = *(sp++);
@@ -940,14 +1163,14 @@ public:
         *(dp++) = *(sp++);
         *(dp++) = *(sp++);
     }
-    void scale(const _Vector<T, 3> & v) {
+    void set_scale(const _Vector<T, 3> & v) {
         const T * sp = v.data();
         T * dp = this->data() + 4 * 3;
         *(dp++) = *(sp++);
         *(dp++) = *(sp++);
         *(dp++) = *(sp++);
     }
-    void translation(const _Vector<T, 3> & v) {
+    void set_translation(const _Vector<T, 3> & v) {
         const T * sp = v.data();
         T * dp = this->data() + 3;
         *dp = *(sp++); dp += 4;
@@ -955,16 +1178,26 @@ public:
         *dp = *(sp++);
     }
 
-    void affine(const _Vector<T, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
+    void homogenous(const _Vector<T, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
         _Matrix3x3<T> R;
         R.rotation(rot);
-        affine(R, trans, scale);
+        homogenous(R, trans, scale);
     }
 
-    void affine(const _Matrix<T, 3, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
-        this->rotation(R);
-        this->translation(trans);
-        this->scale(scale);
+    void homogenous(const _Matrix<T, 3, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
+        this->set_rotation(rot);
+        this->set_translation(trans);
+        this->set_scale(scale);
+        this->data(3, 3) = 1;
+    }
+
+    void homogenous(const _Matrix<T, 3, 3> & rot, const _Vector<T, 3> & trans) {
+        this->set_rotation(rot);
+        this->set_translation(trans);
+        T * dp = this->data() + 4 * 3;
+        *(dp++) = 0;
+        *(dp++) = 0;
+        *(dp++) = 0;
         this->data(3, 3) = 1;
     }
 
@@ -1045,17 +1278,81 @@ public:
 template <class T, size_t N, size_t M> class _MatrixStatic : public _Matrix<T, N, M>, private _DataContainerStatic<T, N * M> {
 public:
 	_MatrixStatic() : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {}
-	_MatrixStatic(T c) : _Matrix<T, N, M>(*this, c) {}
-	_MatrixStatic(const T * data) : _Matrix<T, N, M>(*this, data) {}
-	_MatrixStatic(const _Matrix<T, N, M> & v) : _Matrix<T, N, M>(*this, v) {}
+	_MatrixStatic(T c) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
+        this->_fill(c, N * M);
+    }
+	_MatrixStatic(const T * data) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
+        this->_copy(data, N * M);
+    }
+	_MatrixStatic(const _Matrix<T, N, M> & m) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, N * M);
+    }
+
+    _MatrixStatic<T, N, M> operator + (const _MatrixStatic<T, N, M> & m) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp += m;
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator - (const _MatrixStatic<T, N, M> & m) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp -= m;
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator * (const _MatrixStatic<T, N, M> & m) const {
+        _MatrixStatic<T, N, M> tmp;
+        this->mul_mat(m, tmp);
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator * (const T c) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp *= c;
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator / (const T c) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp /= c;
+        return tmp;
+    }
 };
 
 template <class T, size_t N, size_t M> class _MatrixDynamic : public _Matrix<T, N, M>, private _DataContainerDynamic<T, N * M> {
 public:
 	_MatrixDynamic() : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {}
-	_MatrixDynamic(T c) : _Matrix<T, N, M>(*this, c) {}
-	_MatrixDynamic(const T * data) : _Matrix<T, N, M>(*this, data) {}
-	_MatrixDynamic(const _Matrix<T, N, M> & v) : _Matrix<T, N, M>(*this, v) {}
+	_MatrixDynamic(T c) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
+        this->_fill(c, N * M);
+    }
+	_MatrixDynamic(const T * data) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
+        this->_copy(data, N * M);
+    }
+	_MatrixDynamic(const _Matrix<T, N, M> & m) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
+        this->_copy(m.container, N * M);
+    }
+
+    _MatrixDynamic<T, N, M> operator + (const _MatrixDynamic<T, N, M> & m) const {
+        _MatrixDynamic<T, N, M> tmp(*this);
+        tmp += m;
+        return tmp;
+    }
+    _MatrixDynamic<T, N, M> operator - (const _MatrixDynamic<T, N, M> & m) const {
+        _MatrixDynamic<T, N, M> tmp(*this);
+        tmp -= m;
+        return tmp;
+    }
+    _MatrixDynamic<T, N, M> operator * (const _MatrixDynamic<T, N, M> & m) const {
+        _MatrixDynamic<T, N, M> tmp;
+        this->mul_mat(m, tmp);
+        return tmp;
+    }
+    _MatrixDynamic<T, N, M> operator * (const T c) const {
+        _MatrixDynamic<T, N, M> tmp(*this);
+        tmp *= c;
+        return tmp;
+    }
+    _MatrixDynamic<T, N, M> operator / (const T c) const {
+        _MatrixDynamic<T, N, M> tmp(*this);
+        tmp /= c;
+        return tmp;
+    }
 };
 
 

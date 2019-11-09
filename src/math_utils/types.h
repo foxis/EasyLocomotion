@@ -24,12 +24,15 @@
 
 namespace Locomotion {
 
+#if !defined(REAL_T)
 #ifndef __AVR__
 typedef double real_t;
 #else
 typedef float real_t;
 #endif
-
+#else
+typedef REAL_T real_t;
+#endif
 
 //-------------------------------------------------------------------------------------------
 // Fast inverse square-root

@@ -3,13 +3,15 @@
 #if defined(ARDUINO)
 #include <Arduino.h>
 
+#define REAL_T float
+
 template<typename T> void print_matrix(const T& m, size_t N, size_t M, const char * name) {
     Serial.print("matrix ");
     Serial.println(name);
     for (int row = 0; row < N; row++) {
         for (int col=0;col<M;col++) {
             Serial.print(" ");
-            Serial.print(m.val(row, col));
+            Serial.print(m.val(row, col), 6);
         }
         Serial.println();
     }
@@ -20,7 +22,7 @@ template<typename T> void print_vector(const T& v, size_t N, const char * name) 
     Serial.println(name);
     for (int col=0;col<N;col++) {
         Serial.print(" ");
-        Serial.print(v.data()[col]);
+        Serial.print(v.data()[col], 6);
     }
     Serial.println();
 }
@@ -28,7 +30,12 @@ template<typename T> void print_vector(const T& v, size_t N, const char * name) 
 template<typename T> void print_val(const T a, const char * name) {
     Serial.print("value ");
     Serial.println(name);
-    Serial.println(a);
+    Serial.println(a, 6);
+}
+
+void print_text(const char * text) {
+    Serial.print("Text: ");
+    Serial.println(text);
 }
 
 #else
@@ -43,7 +50,6 @@ typedef unsigned char byte;
 #include <unity.h>
 
 #include "math_utils.h"
-#include "kinematics/PlanarKinematics.h"
 
 using namespace Locomotion;
 
