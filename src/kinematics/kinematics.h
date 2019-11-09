@@ -39,7 +39,7 @@ public:
     virtual bool forward(const T * angle_arr, _Vector3D<T> &dst) = 0;
     virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) = 0;
     virtual size_t dof() const = 0;
-    virtual _ConstraintVolume<T> wokring_space() const = 0;
+    virtual _ConstraintVolume<T> working_space() const = 0;
 };
 
 template<typename T>
@@ -51,7 +51,7 @@ struct _LimbConfig_t {
 template<typename T, size_t LIMBS> class BodyModel {
 protected:
 	_LimbKinematicsModel<T> *limbs;
-	_LimbConfig_t<T> *config;
+	_LimbConfig_t<T> *limb_config;
     _Matrix4x4<T> limb_transform_fw[LIMBS];
     _Matrix4x4<T> limb_transform_inv[LIMBS];
 
@@ -72,7 +72,7 @@ public:
 
 public:
 	BodyModel(_LimbKinematicsModel<T> * limbs, const _LimbConfig_t<T> * limb_config) 
-		: limbs(limbs), config(limb_config) {
+		: limbs(limbs), limb_config(limb_config) {
 		for (size_t i = 0; i < LIMBS; i ++) {
             current_angles[i] = new T[limbs[i].dof()];
             target_angles[i] = new T[limbs[i].dof()];
@@ -92,19 +92,18 @@ public:
     ///
     /// must be called each time limb configuration changes
     void calculate_transforms() {
-        _Matrix3x3<T> Rx, Ry, Rz;
         _Vector4D<T> vol_min_4, vol_max_4;
 		for (size_t i = 0; i < LIMBS; i ++) {
-            *limb_transform_fw[i].affine(limb_config[i].orientation, limb_config[i].position, _Vector3D<T>(0));
+            limb_transform_fw[i].homogenous(limb_config[i].orientation, limb_config[i].position);
             limb_transform_fw[i].inverse(limb_transform_inv[i]);
 
             // TODO: Move into constraints
             // allow for other constraints than Volume
             limb_transform_fw[i].mul(limbs.constraints().min, vol_min_4);
             limb_transform_fw[i].mul(limbs.constraints().max, vol_max_4);
-            constraints[i].min = vol_min_4.vector3d();
-            constraints[i].max = vol_max_4.vector3d();
-            constraints[i].sort();
+            working_space[i].min = vol_min_4.vector3d();
+            working_space[i].max = vol_max_4.vector3d();
+            working_space[i].sort();
 		}
     }
 
@@ -127,7 +126,7 @@ public:
     /// position and orientation
     void inverse(const bool * support) {        
         _Matrix4x4<T> transform;
-        transform.affine(orientation, position, _Vector3D<T>(0));
+        transform.homogenous(orientation, position);
 
         for (size_t i = 0; i < LIMBS; i++)
             // TODO: not sure how this will work yet

@@ -25,11 +25,11 @@ namespace Locomotion {
 template<typename T> class _PlanarKinematics<T, 2> : public _LimbKinematicsModel<T> {
 public:
     const _PlanarJoint_t<T> * config;
-    const _ConstraintVolume<T> & working_space;
+    const _ConstraintVolume<T> & _working_space;
 
 public:
     _PlanarKinematics(const _PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
-        : config(joints), working_space(working_space) {
+        : config(joints), _working_space(working_space) {
     }
     ~_PlanarKinematics() {
     }
@@ -43,24 +43,24 @@ public:
         const T l0 = config[0].length;
         const T l1 = config[1].length;
 
-        _Vector3D<T> effector(l0 + l1 * cos(a1), l1 * sin(a1), 0);
+        _Vector3D<T> effector(l0 + l1 * cos(a1), 0, l1 * sin(a1));
 
         dst.x = effector.x * cos(a0);
-        dst.y = effector.y;
-        dst.z = effector.x * sin(a0);
+        dst.y = effector.x * sin(a0);
+        dst.z = effector.z;
         return true;
     }
 
     virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) {
-        T x_prime = sqrt(SQR(target.x) + SQR(target.z)) - config[0].length;
-        angle_arr[0] = config[0].constraints.limit(atan2(target.z, target.x));
-        angle_arr[1] = config[1].constraints.limit(atan2(target.y, x_prime));
+        T x_prime = sqrt(SQR(target.x) + SQR(target.y)) - config[0].length;
+        angle_arr[0] = config[0].constraints.limit(atan2(target.y, target.x));
+        angle_arr[1] = config[1].constraints.limit(atan2(target.z, x_prime));
         forward(angle_arr, actual);
         return true;
     }
 
     virtual size_t dof() const { return 2; }
-    virtual _ConstraintVolume<T> target_space() const { return working_space; }
+    virtual _ConstraintVolume<T> working_space() const { return _working_space; }
 };
 
 typedef _PlanarKinematics<real_t, 2> PlanarKinematics2DOF;

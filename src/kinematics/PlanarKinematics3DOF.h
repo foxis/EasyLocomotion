@@ -25,11 +25,11 @@ namespace Locomotion {
 template<typename T> class _PlanarKinematics<T, 3> : public _LimbKinematicsModel<T> {
 public:
     const _PlanarJoint_t<T> * config;
-    const _ConstraintVolume<T> & working_space;
+    const _ConstraintVolume<T> & _working_space;
 
 public:
     _PlanarKinematics(const _PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
-        : config(joints), working_space(working_space) {
+        : config(joints), _working_space(_working_space) {
     }
     ~_PlanarKinematics() {
     }
@@ -46,12 +46,12 @@ public:
         const T l2 = config[2].length;
 
         _Vector3D<T> effector(
-            l0 + l1 * cos(a1) + l2 * cos(a2), 
-            l1 * sin(a1) + l2 * sin(a2), 
-            0);
+            l0 + l1 * cos(a1) + l2 * cos(a2),
+            0, 
+            l1 * sin(a1) + l2 * sin(a2));
         dst.x = effector.x * cos(a0);
-        dst.y = effector.y;
-        dst.z = effector.x * sin(a0);
+        dst.z = effector.z;
+        dst.y = effector.x * sin(a0);
         return true;
     }
 
@@ -59,12 +59,12 @@ public:
         const T l0 = config[0].length;
         const T l1 = config[1].length;
         const T l2 = config[2].length;
-        T x_prime = sqrt(SQR(target.x) + SQR(target.z)) - l0;
-        const T gamma = atan2(target.y, x_prime);
-        const T beta = acos((SQR(l1) + SQR(l2) - SQR(x_prime) - SQR(target.y)) / (2 * l1 * l2));
-        const T alpha = acos((SQR(x_prime) + SQR(target.y) + SQR(l1) - SQR(l2)) / (2 * l1 * sqrt(SQR(target.y) + SQR(x_prime))));
+        T x_prime = sqrt(SQR(target.x) + SQR(target.y)) - l0;
+        const T gamma = atan2(target.z, x_prime);
+        const T beta = acos((SQR(l1) + SQR(l2) - SQR(x_prime) - SQR(target.z)) / (2 * l1 * l2));
+        const T alpha = acos((SQR(x_prime) + SQR(target.z) + SQR(l1) - SQR(l2)) / (2 * l1 * sqrt(SQR(target.z) + SQR(x_prime))));
 
-        angle_arr[0] = config[0].constraints.limit(atan2(target.z, target.x));
+        angle_arr[0] = config[0].constraints.limit(atan2(target.y, target.x));
         angle_arr[1] = gamma + alpha;
         angle_arr[2] = beta - M_PI;
 
@@ -73,7 +73,7 @@ public:
     }
 
     virtual size_t dof() const { return 3; }
-    virtual _ConstraintVolume<T> target_space() const { return working_space; }
+    virtual _ConstraintVolume<T> working_space() const { return _working_space; }
 };
 
 typedef _PlanarKinematics<real_t, 3> PlanarKinematics3DOF;

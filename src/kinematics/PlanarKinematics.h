@@ -34,11 +34,11 @@ struct _PlanarJoint_t {
 template<typename T, size_t DOF> class _PlanarKinematics : public _LimbKinematicsModel<T> {
 public:
     const _PlanarJoint_t<T> * config;
-    const _ConstraintVolume<T>& working_space;
+    const _ConstraintVolume<T>& _working_space;
 
 public:
     _PlanarKinematics(const _PlanarJoint_t<T> * joints, const _ConstraintVolume<T> & working_space)
-        : config(joints), working_space(working_space) {
+        : config(joints), _working_space(working_space) {
     }
     ~_PlanarKinematics() {
     }
@@ -59,15 +59,15 @@ public:
             a += cp->constraints.limit(*ap);
 
             real_t x = cp->length * cos(a);
-            real_t y = cp->length * sin(a);
-            effector += _Vector3D<T>(x, y, 0);
+            real_t z = cp->length * sin(a);
+            effector += _Vector3D<T>(x, 0, z);
 
             ++cp;
             ++ap;
         }
         const T tmp_x = effector.x;
         effector.x = tmp_x * cos(angle_arr[0]);
-        effector.z = tmp_x * sin(angle_arr[0]);
+        effector.y = tmp_x * sin(angle_arr[0]);
         return true;
     }
 
@@ -82,7 +82,7 @@ public:
     }
 
     virtual size_t dof() const { return DOF; }
-    virtual _ConstraintVolume<T> target_space() const { return working_space; }
+    virtual _ConstraintVolume<T> working_space() const { return _working_space; }
 };
 
 typedef _PlanarJoint_t<real_t> PlanarJoint_t;
