@@ -38,6 +38,30 @@ void print_text(const char * text) {
     Serial.println(text);
 }
 
+void print_checkpoint_(int line) {
+    Serial.print("Checkpoint line: ");
+    Serial.println(line);
+}
+
+void print_duration_(int line, unsigned long duration) {
+    Serial.print("Duration line: ");
+    Serial.print(line);
+    Serial.print(" ");
+    Serial.print(duration);
+    Serial.println(" us");
+}
+
+#define PP_CAT(a, b) PP_CAT_I(a, b)
+#define PP_CAT_I(a, b) PP_CAT_II(~, a ## b)
+#define PP_CAT_II(p, res) res
+
+#define print_checkpoint print_checkpoint_(__LINE__);
+#define print_duration(expression) print_duration__(expression, PP_CAT(now, __LINE__))
+#define print_duration__(expression, now) \
+    unsigned long now = micros(); \
+    expression; \
+    print_duration_(__LINE__, micros() - now);
+
 #else
 #include <string.h>
 #include <limits.h>

@@ -69,8 +69,8 @@ public:
 
 	void sort() {
 		T mn, mx;
-		mn = min(this->min, this->max);
-		mx = max(this->min, this->max);
+		mn = MIN(this->min, this->max);
+		mx = MAX(this->min, this->max);
 		this->min = mn;
 		this->max = mx;
 	}
@@ -133,12 +133,12 @@ public:
 
 	void sort() {
 		T mn, mx;
-		mn = min(this->min.x, this->max.x);
-		mx = max(this->min.x, this->max.x);
+		mn = MIN(this->min.x, this->max.x);
+		mx = MAX(this->min.x, this->max.x);
 		this->min.x = mn;
 		this->max.x = mx;
-		mn = min(this->min.y, this->max.y);
-		mx = max(this->min.y, this->max.y);
+		mn = MIN(this->min.y, this->max.y);
+		mx = MAX(this->min.y, this->max.y);
 		this->min.y = mn;
 		this->max.y = mx;
 	}
@@ -210,16 +210,16 @@ public:
 
 	void sort() {
 		T mn, mx;
-		mn = min(this->min.x, this->max.x);
-		mx = max(this->min.x, this->max.x);
+		mn = MIN(this->min.x, this->max.x);
+		mx = MAX(this->min.x, this->max.x);
 		this->min.x = mn;
 		this->max.x = mx;
-		mn = min(this->min.y, this->max.y);
-		mx = max(this->min.y, this->max.y);
+		mn = MIN(this->min.y, this->max.y);
+		mx = MAX(this->min.y, this->max.y);
 		this->min.y = mn;
 		this->max.y = mx;
-		mn = min(this->min.z, this->max.z);
-		mx = max(this->min.z, this->max.z);
+		mn = MIN(this->min.z, this->max.z);
+		mx = MAX(this->min.z, this->max.z);
 		this->min.z = mn;
 		this->max.z = mx;
 	}

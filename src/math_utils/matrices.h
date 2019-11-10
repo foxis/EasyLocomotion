@@ -52,7 +52,7 @@ public:
     static void eye(_Matrix<T, N, M> & m) {
         memset(m.data(), 0, sizeof(T) * M * N);
         T *p = m.data();
-        for (size_t i = 0; i < min(M, N); i++) {
+        for (size_t i = 0; i < MIN(M, N); i++) {
             *p = 1;
             p += M + 1;
         }
@@ -105,22 +105,22 @@ public:
     }
 
     void get_diagonal(_Vector<T, N> & m) const {
-        for (size_t i = 0; i < min(M, N); i++)
+        for (size_t i = 0; i < MIN(M, N); i++)
             m.data()[i] = this->val(i, i);
     }
     void set_diagonal(const _Vector<T, N> & m) {
-        for (size_t i = 0; i < min(M, N); i++)
+        for (size_t i = 0; i < MIN(M, N); i++)
             this->row(i)[i] = m.val(i);
     }
 
     template <typename Dummy = void>
     auto get_diagonal(_Vector<T, M> & m) const -> typename std::enable_if<N != M, Dummy>::type {
-        for (size_t i = 0; i < min(M, N); i++)
+        for (size_t i = 0; i < MIN(M, N); i++)
             m.data()[i] = this->val(i, i);
     }
     template <typename Dummy = void>
     auto set_diagonal(const _Vector<T, M> & m) -> typename std::enable_if<N != M, Dummy>::type {
-        for (size_t i = 0; i < min(M, N); i++)
+        for (size_t i = 0; i < MIN(M, N); i++)
             this->row(i)[i] = m.val(i);
     }
 
@@ -412,7 +412,7 @@ public:
                     for(k = i; k < N; k++)
                         s += SQR((this->row(k)[i] /= scale));
                     f = *(_x = this->row(i) + i);
-                    g = -SIGN(sqrt(s), f);
+                    g = -SIGN((T)sqrt(s), f);
                     h = f * g - s;
                     *_x = f - g;
                     for(j = l; j < M; j++)
@@ -449,7 +449,7 @@ public:
                     s += SQR((*(_x++) /= scale));
 
                 f = *(_x = this->row(i) + l);
-                g = -SIGN(sqrt(s), f);
+                g = -SIGN((T)sqrt(s), f);
                 h = f * g - s;
                 *_x = f - g;
                 _x = this->row(i) + l;
@@ -483,7 +483,7 @@ public:
                 for(k = l; k < M; k++) 
                     *(_y++) *= scale;
             }
-            anorm = FMAX(anorm, (fabs(W.val(i)) + fabs(Rv1.val(i))));
+            anorm = MAX(anorm, (T)(fabs(W.val(i)) + fabs(Rv1.val(i))));
         }
 
         for(i = (M - 1); i >= 0 && i < N * M; i--)
@@ -540,7 +540,7 @@ public:
         //
         this->transpose(X);
 
-        for(i = (IMIN(N, M) - 1); i >= 0 && i < N * M; i--)
+        for(i = (MIN(N, M) - 1); i >= 0 && i < N * M; i--)
         {    // Accumulation of left-hand
             l = i + 1;                                 // transformations
             g = W.val(i);
@@ -1021,12 +1021,12 @@ public:
     }
 
     void rotation(const _Vector<T, 3> & angles) {
-        _Matrix3x3<T> Ry, Rz;
-        this->rotation_x(angles.x);
-        Ry.rotation_y(angles.y);
-        Rz.rotation_z(angles.z);
-        *this *= Ry;
-        *this *= Rz;
+        _Matrix3x3<T> R1, R2;
+        this->rotation_x(angles.val(0));
+        R1.rotation_y(angles.val(1));
+        this->mul_mat(R1, R2);
+        R1.rotation_z(angles.val(2));
+        R2.mul_mat(R1, *this);
     }
 
     void rotation_x(T theta, _Matrix<T, 3, 3> & dst) const {
@@ -1188,7 +1188,7 @@ public:
         this->set_rotation(rot);
         this->set_translation(trans);
         this->set_scale(scale);
-        this->data(3, 3) = 1;
+        this->row(3)[3] = 1;
     }
 
     void homogenous(const _Matrix<T, 3, 3> & rot, const _Vector<T, 3> & trans) {
@@ -1198,7 +1198,7 @@ public:
         *(dp++) = 0;
         *(dp++) = 0;
         *(dp++) = 0;
-        this->data(3, 3) = 1;
+        this->row(3)[3] = 1;
     }
 
     _Matrix4x4 operator + (const _Matrix<T, 4, 4> & m) const {
@@ -1267,7 +1267,7 @@ public:
                     }
                 }
                 const T c = 1.0 - (2.0 * ((i + j) % 2));
-                *dst.data(i, j) = c * tmp.det();
+                dst.row(i)[j] = c * tmp.det();
             }
         }
         dst /= D;

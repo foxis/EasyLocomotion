@@ -25,9 +25,8 @@ void test_matrix_lu() {
     };
     Matrix3x3 m(data);
     Matrix3x3 ml(0.0), mu(0.0);
-    unsigned long now = micros();
-    m.lu(ml, mu);
-    print_val((micros() - now), "computation time us");
+
+    print_duration(m.lu(ml, mu));
 
     TEST_ASSERT_FLOAT_WITHIN(1e-3, L[0], ml.data()[0]);
     TEST_ASSERT_FLOAT_WITHIN(1e-3, L[1], ml.data()[1]);

@@ -49,18 +49,10 @@ float FAST_ISQRT(float x){
 }
 
 // Macros for Modern Matrix Methods ("Numerical Recipies in C")
-inline int IMIN(int a, int b) {
-    return a < b ? a : b;
-}
-inline real_t FMAX(real_t a, real_t b) {
-    return a > b ? a : b;
-}
-inline real_t SIGN(real_t a, real_t b) {
-    return b >= 0.0 ? fabs(a) : -fabs(a);
-}
-inline real_t SQR(real_t a) {
-    return a * a;
-}
+template<typename T> T MIN(T a, T b) { return a < b ? a : b; }
+template<typename T> T MAX(T a, T b) { return a > b ? a : b; }
+template<typename T> T SIGN(T a, T b) { return b >= 0.0 ? fabs(a) : -fabs(a); }
+template<typename T> T SQR(T a) { return a * a; }
 
 
 template<typename T> class _DataContainerBase {
