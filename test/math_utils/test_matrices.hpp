@@ -56,12 +56,12 @@ void test_matrix_svd() {
         -1,	1,	-1,	1,
     };
 
-    _MatrixStatic<real_t, 3, 4> m(data);
-    _MatrixStatic<real_t, 3, 3> u;
-    _MatrixStatic<real_t, 4, 4> v;
-    _VectorStatic<real_t, 4> w;
-    _MatrixStatic<real_t, 4, 3> tmpx;
-    _VectorStatic<real_t, 4> tmp;
+    MatrixStatic<3, 4> m(data);
+    MatrixStatic<3, 3> u;
+    MatrixStatic<4, 4> v;
+    VectorStatic<4> w;
+    MatrixStatic<4, 3> tmpx;
+    VectorStatic<4> tmp;
 
     unsigned long now = micros();
     bool result = m.svd(u, w, v, tmp, tmpx);
@@ -69,18 +69,18 @@ void test_matrix_svd() {
 
     TEST_ASSERT_TRUE(result);
 
-    print_matrix(u, 3, 3, "U");
-    print_vector(w, 4, "W");
-    print_matrix(v, 4, 4, "V");
+    print_matrix(u, "U");
+    print_vector(w,"W");
+    print_matrix(v, "V");
     {
-        _MatrixStatic<real_t, 3, 4> _W(0.0);
-        _MatrixStatic<real_t, 3, 4> uw(0.0);
-        _MatrixStatic<real_t, 3, 4> uwv(0.0);
+        MatrixStatic<3, 4> _W(0.0);
+        MatrixStatic<3, 4> uw(0.0);
+        MatrixStatic<3, 4> uwv(0.0);
         _W.set_diagonal(w);
         u.mul_mat(_W, uw);
         v.transpose();
         uw.mul_mat(v, uwv);
-        print_matrix(uwv, 3, 4, "uwv");
+        print_matrix(uwv, "uwv");
 
         TEST_ASSERT_FLOAT_WITHIN(1e-4, data[0], uwv.data()[0]);
         TEST_ASSERT_FLOAT_WITHIN(1e-4, data[1], uwv.data()[1]);
@@ -105,12 +105,12 @@ void test_matrix_svd1() {
         -2,	3,	-3,	6,
     };
 
-    _MatrixStatic<real_t, 4, 4> m(data);
-    _MatrixStatic<real_t, 4, 4> u;
-    _MatrixStatic<real_t, 4, 4> v;
-    _VectorStatic<real_t, 4> w;
-    _MatrixStatic<real_t, 4, 4> tmpx;
-    _VectorStatic<real_t, 4> tmp;
+    MatrixStatic<4, 4> m(data);
+    MatrixStatic<4, 4> u;
+    MatrixStatic<4, 4> v;
+    VectorStatic<4> w;
+    MatrixStatic<4, 4> tmpx;
+    VectorStatic<4> tmp;
 
     unsigned long now = micros();
     bool result = m.svd(u, w, v, tmp, tmpx);
@@ -118,18 +118,18 @@ void test_matrix_svd1() {
 
     TEST_ASSERT_TRUE(result);
 
-    print_matrix(u, 4, 4, "U");
-    print_vector(w, 4, "W");
-    print_matrix(v, 4, 4, "V");
+    print_matrix(u, "U");
+    print_vector(w, "W");
+    print_matrix(v, "V");
     {
-        _MatrixStatic<real_t, 4, 4> _W(0.0);
-        _MatrixStatic<real_t, 4, 4> uw(0.0);
-        _MatrixStatic<real_t, 4, 4> uwv(0.0);
+        MatrixStatic<4, 4> _W(0.0);
+        MatrixStatic<4, 4> uw(0.0);
+        MatrixStatic<4, 4> uwv(0.0);
         _W.set_diagonal(w);
         u.mul_mat(_W, uw);
         v.transpose();
         uw.mul_mat(v, uwv);
-        print_matrix(uwv, 4, 4, "uwv");
+        print_matrix(uwv, "uwv");
 
         TEST_ASSERT_FLOAT_WITHIN(1e-4, data[0], uwv.data()[0]);
         TEST_ASSERT_FLOAT_WITHIN(1e-4, data[1], uwv.data()[1]);
@@ -163,8 +163,8 @@ void test_matrix_pinv() {
         0.125,	-0.125,	0.125,	
     };
 
-    _MatrixStatic<real_t, 3, 4> m(data);
-    _MatrixStatic<real_t, 4, 3> a;
+    MatrixStatic<3, 4> m(data);
+    MatrixStatic<4, 3> a;
 
     unsigned long now = micros();
     bool result = m.pinv(a);
@@ -172,7 +172,7 @@ void test_matrix_pinv() {
 
     TEST_ASSERT_TRUE(result);
 
-    print_matrix(a, 4, 3, "Pseudo Inverse");
+    print_matrix(a, "Pseudo Inverse");
 
     TEST_ASSERT_FLOAT_WITHIN(1e-4, A[0], a.data()[0]);
     TEST_ASSERT_FLOAT_WITHIN(1e-4, A[1], a.data()[1]);
@@ -202,8 +202,8 @@ void test_matrix_pinv1() {
         -0.125, 0.125, -0.125, 0.125,
     };
 
-    _MatrixStatic<real_t, 4, 3> m(data);
-    _MatrixStatic<real_t, 3, 4> a;
+    MatrixStatic<4, 3> m(data);
+    MatrixStatic<3, 4> a;
 
     unsigned long now = micros();
     bool result = m.pinv(a);
@@ -211,7 +211,7 @@ void test_matrix_pinv1() {
 
     TEST_ASSERT_TRUE(result);
 
-    print_matrix(a, 3, 4, "Pseudo Inverse");
+    print_matrix(a, "Pseudo Inverse");
 
     TEST_ASSERT_FLOAT_WITHIN(1e-4, A[0], a.data()[0]);
     TEST_ASSERT_FLOAT_WITHIN(1e-4, A[1], a.data()[1]);

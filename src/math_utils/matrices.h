@@ -280,13 +280,9 @@ public:
 
     template <typename Dummy = void>
     auto transpose() -> typename std::enable_if<N == M, Dummy>::type {
-        for (size_t i = 0; i < N - 1; i++) {
-            for (size_t j = i + 1; j < N; j++) {
-                T tmp = val(i, j);
-                *data(i, j) = val(j, i);
-                *data(j, i) = tmp;
-            }
-        }
+        for (size_t i = 0; i < N - 1; i++)
+            for (size_t j = i + 1; j < N; j++)
+                SWAP(data(i, j), data(j, i));
     }
 
     ///
@@ -832,7 +828,7 @@ public:
 	inline const T* row(size_t row) const { return data() + row * M; }
 };
 
-template <class T> class _Matrix2x2 : public _Matrix<T, 2, 2>, private _DataContainerStatic<T, 4> {
+template <class T> class _Matrix2x2 : private _DataContainerStatic<T, 4>, public _Matrix<T, 2, 2> {
 public:
 	_Matrix2x2() : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {}
 	_Matrix2x2(T c) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
@@ -849,10 +845,7 @@ public:
         this->_copy(data, 4);
     }
 	_Matrix2x2(const _Matrix<T, 2, 2> & m) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
-        this->_copy(m.container, 4);
-    }
-	_Matrix2x2(const _Matrix2x2<T> & m) : _Matrix<T, 2, 2>((_DataContainerBase<T>&)*this) {
-        this->_copy(m.container, 4);
+        this->_copy(m.data(), 4);
     }
 
     _Matrix2x2 operator + (const _Matrix<T, 2, 2> & m) const {
@@ -891,7 +884,7 @@ public:
         return p[0] * p[3] - p[1] * p[2];
     }
 
-    virtual bool inverse(_Matrix2x2<T> & dst) const {
+    virtual bool inverse(_Matrix<T, 2, 2> & dst) const {
         const T * p = this->data();
         T * p1 = dst.data();
         T D = det();
@@ -920,7 +913,7 @@ public:
     } 
 };
 
-template <class T> class _Matrix3x3 : public _Matrix<T, 3, 3>, private _DataContainerStatic<T, 9> {
+template <class T> class _Matrix3x3 : private _DataContainerStatic<T, 9>, public _Matrix<T, 3, 3> {
 public:
 	_Matrix3x3() : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {}
 	_Matrix3x3(T c) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
@@ -942,10 +935,7 @@ public:
         this->_copy(data, 9);
     }
 	_Matrix3x3(const _Matrix<T, 3, 3> & m) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
-        this->_copy(m.container, 9);
-    }
-	_Matrix3x3(const _Matrix3x3<T> & m) : _Matrix<T, 3, 3>((_DataContainerBase<T>&)*this) {
-        this->_copy(m.container, 9);
+        this->_copy(m.data(), 9);
     }
 
     _Matrix3x3 operator + (const _Matrix<T, 3, 3> & m) const {
@@ -986,7 +976,7 @@ public:
             + p[2] * (p[3] * p[7] - p[4] * p[6]);
     }
 
-    virtual bool inverse(_Matrix3x3<T> & dst) const {
+    virtual bool inverse(_Matrix<T, 3, 3> & dst) const {
         const T * p = this->data();
         T * p1 = dst.data();
         T D = det();
@@ -1107,7 +1097,7 @@ public:
     }
 };
 
-template <class T> class _Matrix4x4 : public _Matrix<T, 4, 4>, private _DataContainerStatic<T, 16> {
+template <class T> class _Matrix4x4 : private _DataContainerStatic<T, 16>, public _Matrix<T, 4, 4> {
 public:
 	_Matrix4x4() : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {}
 	_Matrix4x4(T c) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
@@ -1138,10 +1128,7 @@ public:
         this->_copy(data, 16);
     }
 	_Matrix4x4(const _Matrix<T, 4, 4> & m) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
-        this->_copy(m.container, 16);
-    }
-	_Matrix4x4(const _Matrix4x4<T> & m) : _Matrix<T, 4, 4>((_DataContainerBase<T>&)*this) {
-        this->_copy(m.container, 16);
+        this->_copy(m.data(), 16);
     }
 
     void operator = (const _Matrix<T, 3, 3> & m) {
@@ -1164,18 +1151,10 @@ public:
         *(dp++) = *(sp++);
     }
     void set_scale(const _Vector<T, 3> & v) {
-        const T * sp = v.data();
-        T * dp = this->data() + 4 * 3;
-        *(dp++) = *(sp++);
-        *(dp++) = *(sp++);
-        *(dp++) = *(sp++);
+        SET_ROW<T, 3>(this->row(3), v.data());
     }
     void set_translation(const _Vector<T, 3> & v) {
-        const T * sp = v.data();
-        T * dp = this->data() + 3;
-        *dp = *(sp++); dp += 4;
-        *dp = *(sp++); dp += 4;
-        *dp = *(sp++);
+        SET_COL<T, 4, 3>(this->data() + 3, v.data());
     }
 
     void homogenous(const _Vector<T, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
@@ -1194,11 +1173,24 @@ public:
     void homogenous(const _Matrix<T, 3, 3> & rot, const _Vector<T, 3> & trans) {
         this->set_rotation(rot);
         this->set_translation(trans);
-        T * dp = this->data() + 4 * 3;
-        *(dp++) = 0;
-        *(dp++) = 0;
-        *(dp++) = 0;
+        SET_ROW<T, 3>(this->row(3), 0.0);
         this->row(3)[3] = 1;
+    }
+
+    void homogenous_inverse(_Matrix<T, 4, 4> & dst) {
+        _Matrix4x4<T> R;
+        _Matrix4x4<T> t;
+        for (size_t i = 0; i < 3; i++)
+            for (size_t j = 0; j < 3; j++)
+                R.row(i)[j] = this->row(j)[i];
+        SET_ROW<T, 3>(R.row(3), 0.0);
+        SET_COL<T, 4, 3>(R.data() + 3, 0.0);
+        R.row(3)[3] = 1.0;
+        t.eye();
+        t.row(0)[3] = -this->row(0)[3];
+        t.row(1)[3] = -this->row(1)[3];
+        t.row(2)[3] = -this->row(2)[3];
+        R.mul_mat(t, dst);
     }
 
     _Matrix4x4 operator + (const _Matrix<T, 4, 4> & m) const {
@@ -1247,7 +1239,7 @@ public:
             - d * (e * (jo - kn) - f * (io + km) + g * (in - jm));
     }
 
-    virtual bool inverse(_Matrix4x4<T> & dst) const {
+    virtual bool inverse(_Matrix<T, 4, 4> & dst) const {
         T D = det();
         _Matrix3x3<T> tmp;
         if (D == 0)
@@ -1275,7 +1267,7 @@ public:
     }
 };
 
-template <class T, size_t N, size_t M> class _MatrixStatic : public _Matrix<T, N, M>, private _DataContainerStatic<T, N * M> {
+template <class T, size_t N, size_t M> class _MatrixStatic : private _DataContainerStatic<T, N * M>, public _Matrix<T, N, M> {
 public:
 	_MatrixStatic() : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {}
 	_MatrixStatic(T c) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
@@ -1288,17 +1280,17 @@ public:
         this->_copy(m.container, N * M);
     }
 
-    _MatrixStatic<T, N, M> operator + (const _MatrixStatic<T, N, M> & m) const {
+    _MatrixStatic<T, N, M> operator + (const _Matrix<T, N, M> & m) const {
         _MatrixStatic<T, N, M> tmp(*this);
         tmp += m;
         return tmp;
     }
-    _MatrixStatic<T, N, M> operator - (const _MatrixStatic<T, N, M> & m) const {
+    _MatrixStatic<T, N, M> operator - (const _Matrix<T, N, M> & m) const {
         _MatrixStatic<T, N, M> tmp(*this);
         tmp -= m;
         return tmp;
     }
-    _MatrixStatic<T, N, M> operator * (const _MatrixStatic<T, N, M> & m) const {
+    _MatrixStatic<T, N, M> operator * (const _Matrix<T, N, M> & m) const {
         _MatrixStatic<T, N, M> tmp;
         this->mul_mat(m, tmp);
         return tmp;
@@ -1315,7 +1307,7 @@ public:
     }
 };
 
-template <class T, size_t N, size_t M> class _MatrixDynamic : public _Matrix<T, N, M>, private _DataContainerDynamic<T, N * M> {
+template <class T, size_t N, size_t M> class _MatrixDynamic : private _DataContainerDynamic<T, N * M>, public _Matrix<T, N, M> {
 public:
 	_MatrixDynamic() : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {}
 	_MatrixDynamic(T c) : _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {
@@ -1328,17 +1320,17 @@ public:
         this->_copy(m.container, N * M);
     }
 
-    _MatrixDynamic<T, N, M> operator + (const _MatrixDynamic<T, N, M> & m) const {
+    _MatrixDynamic<T, N, M> operator + (const _Matrix<T, N, M> & m) const {
         _MatrixDynamic<T, N, M> tmp(*this);
         tmp += m;
         return tmp;
     }
-    _MatrixDynamic<T, N, M> operator - (const _MatrixDynamic<T, N, M> & m) const {
+    _MatrixDynamic<T, N, M> operator - (const _Matrix<T, N, M> & m) const {
         _MatrixDynamic<T, N, M> tmp(*this);
         tmp -= m;
         return tmp;
     }
-    _MatrixDynamic<T, N, M> operator * (const _MatrixDynamic<T, N, M> & m) const {
+    _MatrixDynamic<T, N, M> operator * (const _Matrix<T, N, M> & m) const {
         _MatrixDynamic<T, N, M> tmp;
         this->mul_mat(m, tmp);
         return tmp;
@@ -1355,10 +1347,45 @@ public:
     }
 };
 
+template <class T, size_t N, size_t M, bool OWNS=false> class _MatrixFromArr : private _DataContainerFromPtr<T, N * M, OWNS>, public _Matrix<T, N, M> {
+public:
+	_MatrixFromArr(T * arr) : _DataContainerFromPtr<T, N*M, OWNS>(arr), _Matrix<T, N, M>((_DataContainerBase<T>&)*this) {}
+
+    _MatrixStatic<T, N, M> operator + (const _Matrix<T, N, M> & m) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp += m;
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator - (const _Matrix<T, N, M> & m) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp -= m;
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator * (const _Matrix<T, N, M> & m) const {
+        _MatrixStatic<T, N, M> tmp;
+        this->mul_mat(m, tmp);
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator * (const T c) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp *= c;
+        return tmp;
+    }
+    _MatrixStatic<T, N, M> operator / (const T c) const {
+        _MatrixStatic<T, N, M> tmp(*this);
+        tmp /= c;
+        return tmp;
+    }
+};
+
 
 typedef _Matrix2x2<real_t> Matrix2x2;
 typedef _Matrix3x3<real_t> Matrix3x3;
 typedef _Matrix4x4<real_t> Matrix4x4;
+template<size_t N, size_t M> using Matrix = _Matrix<real_t, N, M>;
+template<size_t N, size_t M> using MatrixStatic = _MatrixStatic<real_t, N, M>;
+template<size_t N, size_t M> using MatrixDynamic = _MatrixDynamic<real_t, N, M>;
+template<size_t N, size_t M, bool OWNS=false> using MatrixFromArr = _MatrixFromArr<real_t, N, M, OWNS>;
 
 }
 

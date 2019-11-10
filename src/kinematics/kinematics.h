@@ -26,18 +26,18 @@
 namespace Locomotion {
 
 #if !defined(IK_SOLVER_CCD) && !defined(IK_SOLVER_JACOBIAN)
-#define IK_SOLVER_CCD
+#define IK_SOLVER_JACOBIAN
 #endif
 
 template<typename T> class _LimbKinematicsModel {
 public:
-    virtual _Vector3D<T> forward(const T * angle_arr) {
+    virtual _Vector3D<T> forward(const T * param_arr) {
         _Vector3D<T> tmp;
-        forward(angle_arr, tmp);
+        forward(param_arr, tmp);
         return tmp;
     }
-    virtual bool forward(const T * angle_arr, _Vector3D<T> &dst) = 0;
-    virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) = 0;
+    virtual bool forward(const T * param_arr, _Vector<T, 3> &dst) = 0;
+    virtual bool inverse(const _Vector<T, 3> & target, const T * current_param_arr, T * param_arr, _Vector<T, 3> & actual, T eps, size_t max_iterations) = 0;
     virtual size_t dof() const = 0;
     virtual _ConstraintVolume<T> working_space() const = 0;
 };
@@ -52,45 +52,81 @@ struct _LimbConfig_t {
 
 template<typename T, size_t LIMBS> class _BodyModel {
 protected:
-	_LimbKinematicsModel<T> **limbs;
+    typedef T* LimbArr_t;
+    typedef _LimbKinematicsModel<T> * LimbModelPtr_t;
+
+	LimbModelPtr_t *limbs;
 	const _LimbConfig_t<T> *limb_config;
     _Matrix4x4<T> limb_transform_fw[LIMBS];
     _Matrix4x4<T> limb_transform_inv[LIMBS];
 
-    typedef T* LimbArr_t;
-
 public:
-    // holders for joint angles for each limb
-	LimbArr_t current_angles[LIMBS];
-	LimbArr_t target_angles[LIMBS];
+    // holders for joint parameters for each limb
+	LimbArr_t current_joints[LIMBS];
+	LimbArr_t target_joints[LIMBS];
 
     // all coordinates are in body space
     _ConstraintVolume<T> working_space[LIMBS];
 
-	_Vector3D<T> position;
-	_Vector3D<T> orientation;
+    /// body transform
+    _Matrix4x4<T> transform;
+    _Matrix4x4<T> transform_inv;
 
+    /// limb state
 	_Vector3D<T> limb_pos[LIMBS];
 	_Vector3D<T> actual_limb_pos[LIMBS];
 	_Vector3D<T> reference_limb_pos[LIMBS];
 
 public:
-	_BodyModel(_LimbKinematicsModel<T> ** limbs, const _LimbConfig_t<T> * limb_config, const _Vector3D<T> & position, const _Vector3D<T> & orientation)
-		: limbs(limbs), limb_config(limb_config), position(position), orientation(orientation) {
+	_BodyModel(LimbModelPtr_t * limbs, const _LimbConfig_t<T> * limb_config, const _Vector3D<T> & position, const _Vector3D<T> & orientation)
+		: limbs(limbs), limb_config(limb_config) {
 		for (size_t i = 0; i < LIMBS; i ++) {
             const size_t dof = limbs[i]->dof();
-            current_angles[i] = new T[dof];
-            target_angles[i] = new T[dof];
-            memset(current_angles[i], 0, sizeof(T) * dof);
-            memset(target_angles[i], 0, sizeof(T) * dof);
+            current_joints[i] = new T[dof];
+            target_joints[i] = new T[dof];
+            memset(current_joints[i], 0, sizeof(T) * dof);
+            memset(target_joints[i], 0, sizeof(T) * dof);
 		}
+        set_transform(position, orientation);
         calculate_transforms();
+        forward_limbs();
+        fix_reference();
 	}
     ~_BodyModel() {
         for (size_t i = 0; i < LIMBS; i++) {
-            delete[] current_angles[i];
-            delete[] target_angles[i];
+            delete[] current_joints[i];
+            delete[] target_joints[i];
         }
+    }
+
+    void set_transform(const _Vector3D<T> & position, const _Vector3D<T> & orientation) {
+        _Vector3D<T> zero(0.0);
+        transform.homogenous(orientation, position, zero);
+        transform.homogenous_inverse(transform_inv);
+    }
+    void set_position(const _Vector3D<T> & position) {
+        transform.set_translation(position);
+        transform.homogenous_inverse(transform_inv);
+    }
+    void set_orientation(const _Vector3D<T> & orientation) {
+        _Matrix3x3<T> R;
+        R.rotation(orientation);
+        set_orientation(R);
+    }
+    void set_orientation(const _Matrix<T, 3, 3> & R) {
+        transform.set_rotation(R);
+        transform.homogenous_inverse(transform_inv);
+    }
+
+    void fix_reference(const bool * support = NULL) {
+        for (size_t i = 0; i < LIMBS; i++)
+            if (support == NULL || !support[i])
+                reference_limb_pos[i] = limb_pos[i];
+    }
+    void fix_reference_actual(const bool * support = NULL) {
+        for (size_t i = 0; i < LIMBS; i++)
+            if (support == NULL || !support[i])
+                reference_limb_pos[i] = actual_limb_pos[i];
     }
 
     ///
@@ -103,7 +139,7 @@ public:
         _Vector3D<T> zero(0.0);
 		for (size_t i = 0; i < LIMBS; i ++) {
             limb_transform_fw[i].homogenous(limb_config[i].orientation, limb_config[i].displacement, zero);
-            limb_transform_fw[i].inverse(limb_transform_inv[i]);
+            limb_transform_fw[i].homogenous_inverse(limb_transform_inv[i]);
 
             // TODO: Move into constraints
             // allow for other constraints than Volume
@@ -111,8 +147,8 @@ public:
             limb_transform_fw[i].mul(tmp, vol_min_4);
             tmp = limbs[i]->working_space().max;
             limb_transform_fw[i].mul(tmp, vol_max_4);
-            working_space[i].min = vol_min_4.vector3d();
-            working_space[i].max = vol_max_4.vector3d();
+            vol_min_4.vector3d(working_space[i].min);
+            vol_max_4.vector3d(working_space[i].max);
             working_space[i].sort();
 		}
     }
@@ -134,14 +170,16 @@ public:
     /// given limbs that support the body, calculate limb positions
     /// relative to reference_limb_pos that would result in given
     /// position and orientation
-    void inverse(const bool * support) {        
-        _Matrix4x4<T> transform;
-        transform.homogenous(orientation, position);
-
+    void inverse(const bool * support, T eps, size_t max_iterations) {
+        _Vector4D<T> ref, pos;
         for (size_t i = 0; i < LIMBS; i++)
             // TODO: not sure how this will work yet
-            if (support[i])
-                transform.mul(reference_limb_pos[i], limb_pos[i]);
+            if (support[i]) {
+                ref = reference_limb_pos[i];
+                transform_inv.mul(ref, pos);
+                pos.vector3d(limb_pos[i]);
+            }
+        inverse_limbs(eps, max_iterations);
     }
 
     ///
@@ -153,7 +191,7 @@ public:
     }
 
     ///
-    /// given current_angles for each limb calculate
+    /// given current_joints for each limb calculate
     /// limb_pos in body reference frame
     ///
     virtual void forward_limbs() {
@@ -161,7 +199,7 @@ public:
         _Vector4D<T> tmp;
         _Vector3D<T> pos_3;
         for (size_t i = 0; i < LIMBS; i++) {            
-            limbs[i]->forward(current_angles[i], pos_3);
+            limbs[i]->forward(current_joints[i], pos_3);
             tmp = pos_3;
             limb_transform_fw[i].mul(tmp, pos_4);
             limb_pos[i] = pos_4.vector3d();
@@ -170,8 +208,8 @@ public:
 
     ///
     /// given limb_pos in body reference frame calculate 
-    /// target_angles for each limb as well as actual_limb_pos
-    virtual void inverse_limbs(const bool * support, T eps, size_t max_iterations) {
+    /// target_joints for each limb as well as actual_limb_pos
+    virtual void inverse_limbs(T eps, size_t max_iterations) {
         _Vector3D<T> local_pos;
         _Vector4D<T> pos_4;
         _Vector4D<T> tmp;
@@ -179,8 +217,8 @@ public:
             tmp = limb_pos[i];
             limb_transform_inv[i].mul(tmp, pos_4);
             local_pos = pos_4.vector3d();
-            limbs[i]->inverse(local_pos, current_angles[i], target_angles[i], local_pos, eps, max_iterations);
-            memcpy(current_angles[i], target_angles[i], sizeof(T) * limbs[i]->dof());
+            limbs[i]->inverse(local_pos, current_joints[i], target_joints[i], local_pos, eps, max_iterations);
+            memcpy(current_joints[i], target_joints[i], sizeof(T) * limbs[i]->dof());
             tmp = local_pos;
             limb_transform_fw[i].mul(tmp, pos_4);
             actual_limb_pos[i] = pos_4.vector3d();

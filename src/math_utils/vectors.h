@@ -57,7 +57,7 @@ public:
 			++p;
 		}
 	}
-	inline T magnitudeSqr() const {
+	T magnitudeSqr() const {
 		T sum = 0;
 		const T *p = this->data();
 		for (size_t i = 0; i < N; i++) {
@@ -66,8 +66,22 @@ public:
 		}
 		return sum;
 	}
-	inline T magnitude() const {
+	T magnitude() const {
 		return sqrt(magnitudeSqr());
+	}
+	T distanceSqr(const _Vector<T, N> & v) const {
+		T sum = 0;
+		const T *p = this->data();
+		const T *pv = v.data();
+		for (size_t i = 0; i < N; i++) {
+			sum += SQR(*p - *pv);
+			++p;
+			++pv;
+		}
+		return sum;
+	}
+	T distance(const _Vector<T, N> & v) const {
+		return sqrt(distanceSqr(v));
 	}
 	void normal(_Vector<T, N> & dst) const {
 		dst = *this;
@@ -238,7 +252,7 @@ public:
 	inline T val(size_t row) const { return *(container._data() + row); }
 };
 
-template <typename T> class _Vector2D : public _Vector<T, 2>, protected _DataContainerBase<T> {
+template <typename T> class _Vector2D : private _DataContainerBase<T>, public _Vector<T, 2> {
 	virtual T* _data() { return &x; }
 	virtual const T* _data() const { return &x; }
     virtual _DataContainerBase<T> * _clone() const {
@@ -260,9 +274,6 @@ public:
 	}
 	_Vector2D(const _Vector<T, 2> & v) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
 		this->_copy(v.data(), 2);
-	}
-	_Vector2D(const _Vector2D<T> & v) : _Vector<T, 2>(*(_DataContainerBase<T>*)this) {
-		this->_copy(v.container, 2);
 	}
 
 	_Vector2D<T> operator + (const _Vector<T, 2> & v) const {
@@ -311,7 +322,7 @@ public:
 	T x, y;
 };
 
-template <typename T> class _Vector3D : public _Vector<T, 3>, protected _DataContainerBase<T> {
+template <typename T> class _Vector3D : private _DataContainerBase<T>, public _Vector<T, 3> {
 	virtual T* _data() { return &x; }
 	virtual const T* _data() const { return &x; }
     virtual _DataContainerBase<T> * _clone() const {
@@ -335,8 +346,9 @@ public:
 	_Vector3D(const _Vector<T, 3> & v) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
 		this->_copy(v.data(), 3);
 	}
-	_Vector3D(const _Vector3D<T> & v) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
-		this->_copy(v.container, 3);
+	_Vector3D(const _Vector<T, 2> & v) : _Vector<T, 3>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.data(), 2);
+		this->z = 1;
 	}
 
 	_Vector3D<T> operator + (const _Vector<T, 3> & v) const {
@@ -396,11 +408,17 @@ public:
 	
 		return true;
 	}
+	_Vector2D<T> vector3d() const {
+		return _Vector2D<T>(x, y);
+	}
+	void vector2d(_Vector<T, 2> & dst) const {
+		SET_ROW<T, 2>(dst.data(), this->data());
+	}
 
 	T x, y, z;
 };
 
-template <typename T> class _Vector4D : public _Vector<T, 4>, protected _DataContainerBase<T> {
+template <typename T> class _Vector4D : private _DataContainerBase<T>, public _Vector<T, 4> {
 	virtual T* _data() { return &x; }
 	virtual const T* _data() const { return &x; }
     virtual _DataContainerBase<T> * _clone() const {
@@ -425,9 +443,6 @@ public:
 	_Vector4D(const _Vector<T, 4> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
 		this->_copy(v.data(), 4);
 	}
-	_Vector4D(const _Vector4D<T> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
-		this->_copy(v.container, 4);
-	}
 	_Vector4D(const _Vector<T, 3> & v) : _Vector<T, 4>((_DataContainerBase<T>&)*this) {
 		this->_copy(v.data(), 3);
 		this->w = 1;
@@ -449,29 +464,116 @@ public:
 	_Vector3D<T> vector3d() const {
 		return _Vector3D<T>(x, y, z);
 	}
+	void vector3d(_Vector<T, 3> & dst) const {
+		SET_ROW<T, 3>(dst.data(), this->data());
+	}
 
 	T x, y, z, w;
 };
 
-template <typename T, size_t N> class _VectorStatic : public _Vector<T, N>, private _DataContainerStatic<T, N> {
+template <typename T, size_t N> class _VectorStatic : private _DataContainerStatic<T, N>, public _Vector<T, N> {
 public:
 	_VectorStatic() : _Vector<T, N>((_DataContainerBase<T>&)*this) {}
-	_VectorStatic(T c) : _Vector<T, N>(*this, c) {}
-	_VectorStatic(const T * data) : _Vector<T, N>(*this, data) {}
-	_VectorStatic(const _Vector<T, N> & v) : _Vector<T, N>(*this, v) {}
+	_VectorStatic(T c) : _Vector<T, N>((_DataContainerBase<T>&)*this) {
+		this->_fill(c, N);
+	}
+	_VectorStatic(const T * arr) : _Vector<T, N>((_DataContainerBase<T>&)*this) {
+		this->_copy(arr, N);
+	}
+	_VectorStatic(const _Vector<T, N> & v) : _Vector<T, N>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.data(), N);
+	}
+
+	_VectorStatic<T, N> operator + (const _Vector<T, N> & v) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp += v;
+		return tmp;
+	}
+	_VectorStatic<T, N> operator - (const _Vector<T, N> & v) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp -= v;
+		return tmp;
+	}
+	_VectorStatic<T, N> operator * (T c) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp *= c;
+		return tmp;
+	}
+	_VectorStatic<T, N> operator / (T c) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp /= c;
+		return tmp;
+	}
 };
 
-template <typename T, size_t N> class _VectorDynamic : public _Vector<T, N>, private _DataContainerDynamic<T, N> {
+template <typename T, size_t N> class _VectorDynamic : private _DataContainerDynamic<T, N>, public _Vector<T, N> {
 public:
 	_VectorDynamic() : _Vector<T, N>((_DataContainerBase<T>&)*this) {}
-	_VectorDynamic(T c) : _Vector<T, N>(*this, c) {}
-	_VectorDynamic(const T * data) : _Vector<T, N>(*this, data) {}
-	_VectorDynamic(const _Vector<T, N> & v) : _Vector<T, N>(*this, v) {}
+	_VectorDynamic(T c) : _Vector<T, N>((_DataContainerBase<T>&)*this) {
+		this->_fill(c, N);
+	}
+	_VectorDynamic(const T * arr) : _Vector<T, N>((_DataContainerBase<T>&)*this) {
+		this->_copy(arr, N);
+	}
+	_VectorDynamic(const _Vector<T, N> & v) : _Vector<T, N>((_DataContainerBase<T>&)*this) {
+		this->_copy(v.data(), N);
+	}
+
+	_VectorDynamic<T, N> operator + (const _Vector<T, N> & v) const {
+		_VectorDynamic<T, N> tmp(*this);
+		tmp += v;
+		return tmp;
+	}
+	_VectorDynamic<T, N> operator - (const _Vector<T, N> & v) const {
+		_VectorDynamic<T, N> tmp(*this);
+		tmp -= v;
+		return tmp;
+	}
+	_VectorDynamic<T, N> operator * (T c) const {
+		_VectorDynamic<T, N> tmp(*this);
+		tmp *= c;
+		return tmp;
+	}
+	_VectorDynamic<T, N> operator / (T c) const {
+		_VectorDynamic<T, N> tmp(*this);
+		tmp /= c;
+		return tmp;
+	}
+};
+
+template <typename T, size_t N, bool OWNS=false> class _VectorFromArr : private _DataContainerFromPtr<T, N, OWNS>, public _Vector<T, N> {
+public:
+	_VectorFromArr(T * arr) : _DataContainerFromPtr<T, N, OWNS>(arr), _Vector<T, N>((_DataContainerBase<T>&)*this) {}
+
+	_VectorStatic<T, N> operator + (const _Vector<T, N> & v) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp += v;
+		return tmp;
+	}
+	_VectorStatic<T, N> operator - (const _Vector<T, N> & v) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp -= v;
+		return tmp;
+	}
+	_VectorStatic<T, N> operator * (T c) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp *= c;
+		return tmp;
+	}
+	_VectorStatic<T, N> operator / (T c) const {
+		_VectorStatic<T, N> tmp(*this);
+		tmp /= c;
+		return tmp;
+	}
 };
 
 typedef _Vector2D<real_t> Vector2D;
 typedef _Vector3D<real_t> Vector3D;
 typedef _Vector4D<real_t> Vector4D;
+template<size_t N> using Vector = _Vector<real_t, N>;
+template<size_t N> using VectorStatic = _VectorStatic<real_t, N>;
+template<size_t N> using VectorDynamic = _VectorDynamic<real_t, N>;
+template<size_t N, bool OWNS=false> using VectorFromArr = _VectorFromArr<real_t, N, OWNS>;
 
 };
 

@@ -22,6 +22,7 @@
 
 #include "../locomotion.h"
 #include "kinematics.h"
+#include "ik_solver_jacob.h"
 
 namespace Locomotion {
 
@@ -98,29 +99,35 @@ public:
     /// Performs planar forward kinematics 
     /// assuming that the first joint is rotation about y axis
     ///
-    virtual bool forward(const T * param_arr, _Vector3D<T> & effector) {
-        _Matrix4x4<T> _T;
+    virtual bool forward(const T * param_arr, _Vector<T, 3> & effector) {
+        _Matrix4x4<T> H0n;
         for (size_t i = 0; i < DOF; i++) 
             if (!calculate_transform(i, param_arr[i]))
                 return false;
-        _T = this->transforms[0];
+        H0n = this->transforms[0];
         for (size_t i = 1; i < DOF; i++)
-            _T = _T * this->transforms[i];
-        const T * p = _T.data() + 3;
-        T * pe = effector.data();
-        *(pe++) = p[0];
-        *(pe++) = p[4];
-        *(pe++) = p[8];
+            H0n = H0n * this->transforms[i];
+        return forward(H0n, param_arr, effector);
+    }
+    bool forward(const _Matrix<T, 4, 4> & H0n, const T * param_arr, _Vector<T, 3> & effector) {
+        GET_COL<T, 4, 3>(effector.data(), H0n.data() + 3);
         return true;
     }
 
-    virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) {
-        #if defined IK_SOLVER_CCD
-        #elif IK_SOLVER_JACOBIAN
-        #error Jacobian IK Solver not implemented
-        #else
-        #error Please specify a solver (IK_SOLVER_CCD or IK_SOLVER_JACOBIAN)
-        #endif
+    virtual bool inverse(const _Vector<T, 3> & target, const T * current_param_arr, T * param_arr, _Vector<T, 3> & actual, T eps, size_t max_iterations) {
+        T error, eps2 = SQR(eps);
+        for (size_t iter = 0; iter < max_iterations + 1; iter++) {
+            if (!forward(current_param_arr, actual))
+                return false;
+            error = target.distanceSqr(actual);
+            if (error < eps2)
+                return true;
+            if (iter == max_iterations)
+                return false;
+            if (!ik_solver_jacobian_pos<T, DOF>(this->transforms, target, param_arr))
+                return false;
+        }
+
         return false;
     }
 

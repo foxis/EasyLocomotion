@@ -37,25 +37,25 @@ public:
     /// Performs planar forward kinematics 
     /// assuming that the first joint is rotation about y axis
     ///
-    virtual bool forward(const T * angle_arr, _Vector3D<T> &dst) {
-        const T a0 = config[0].constraints.limit(angle_arr[0]);
-        const T a1 = config[1].constraints.limit(angle_arr[1]);
+    virtual bool forward(const T * param_arr, _Vector<T, 3> &dst) {
+        const T a0 = config[0].constraints.limit(param_arr[0]);
+        const T a1 = config[1].constraints.limit(param_arr[1]);
         const T l0 = config[0].length;
         const T l1 = config[1].length;
 
         _Vector3D<T> effector(l0 + l1 * cos(a1), 0, l1 * sin(a1));
 
-        dst.x = effector.x * cos(a0);
-        dst.y = effector.x * sin(a0);
-        dst.z = effector.z;
+        dst.data()[0] = effector.x * cos(a0);
+        dst.data()[1] = effector.x * sin(a0);
+        dst.data()[2] = effector.z;
         return true;
     }
 
-    virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) {
-        T x_prime = sqrt(SQR(target.x) + SQR(target.y)) - config[0].length;
-        angle_arr[0] = config[0].constraints.limit(atan2(target.y, target.x));
-        angle_arr[1] = config[1].constraints.limit(atan2(target.z, x_prime));
-        forward(angle_arr, actual);
+    virtual bool inverse(const _Vector<T, 3> & target, const T * current_param_arr, T * param_arr, _Vector<T, 3> & actual, T eps, size_t max_iterations) {
+        T x_prime = sqrt(SQR(target.val(0)) + SQR(target.val(1))) - config[0].length;
+        param_arr[0] = config[0].constraints.limit(atan2(target.val(1), target.val(0)));
+        param_arr[1] = config[1].constraints.limit(atan2(target.val(2), x_prime));
+        forward(param_arr, actual);
         return true;
     }
 

@@ -37,10 +37,10 @@ public:
     /// Performs planar forward kinematics 
     /// assuming that the first joint is rotation about y axis
     ///
-    virtual bool forward(const T * angle_arr, _Vector3D<T> & dst) {
-        const T a0 = config[0].constraints.limit(angle_arr[0]);
-        const T a1 = config[1].constraints.limit(angle_arr[1]);
-        const T a2 = config[2].constraints.limit(angle_arr[2]) + a1;
+    virtual bool forward(const T * param_arr, _Vector<T, 3> & dst) {
+        const T a0 = config[0].constraints.limit(param_arr[0]);
+        const T a1 = config[1].constraints.limit(param_arr[1]);
+        const T a2 = config[2].constraints.limit(param_arr[2]) + a1;
         const T l0 = config[0].length;
         const T l1 = config[1].length;
         const T l2 = config[2].length;
@@ -49,26 +49,26 @@ public:
             l0 + l1 * cos(a1) + l2 * cos(a2),
             0, 
             l1 * sin(a1) + l2 * sin(a2));
-        dst.x = effector.x * cos(a0);
-        dst.z = effector.z;
-        dst.y = effector.x * sin(a0);
+        dst.data()[0] = effector.x * cos(a0);
+        dst.data()[2] = effector.z;
+        dst.data()[1] = effector.x * sin(a0);
         return true;
     }
 
-    virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) {
+    virtual bool inverse(const _Vector<T, 3> & target, const T * current_param_arr, T * param_arr, _Vector<T, 3> & actual, T eps, size_t max_iterations) {
         const T l0 = config[0].length;
         const T l1 = config[1].length;
         const T l2 = config[2].length;
-        T x_prime = sqrt(SQR(target.x) + SQR(target.y)) - l0;
-        const T gamma = atan2(target.z, x_prime);
-        const T beta = acos((SQR(l1) + SQR(l2) - SQR(x_prime) - SQR(target.z)) / (2 * l1 * l2));
-        const T alpha = acos((SQR(x_prime) + SQR(target.z) + SQR(l1) - SQR(l2)) / (2 * l1 * sqrt(SQR(target.z) + SQR(x_prime))));
+        T x_prime = sqrt(SQR(target.val(0)) + SQR(target.val(1))) - l0;
+        const T gamma = atan2(target.val(2), x_prime);
+        const T beta = acos((SQR(l1) + SQR(l2) - SQR(x_prime) - SQR(target.val(2))) / (2 * l1 * l2));
+        const T alpha = acos((SQR(x_prime) + SQR(target.val(2)) + SQR(l1) - SQR(l2)) / (2 * l1 * sqrt(SQR(target.val(2)) + SQR(x_prime))));
 
-        angle_arr[0] = config[0].constraints.limit(atan2(target.y, target.x));
-        angle_arr[1] = gamma + alpha;
-        angle_arr[2] = beta - M_PI;
+        param_arr[0] = config[0].constraints.limit(atan2(target.val(1), target.val(0)));
+        param_arr[1] = gamma + alpha;
+        param_arr[2] = beta - M_PI;
 
-        forward(angle_arr, actual);
+        forward(param_arr, actual);
         return true;
     }
 

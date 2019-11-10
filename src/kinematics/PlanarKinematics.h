@@ -46,15 +46,12 @@ public:
     /// Performs planar forward kinematics 
     /// assuming that the first joint is rotation about y axis
     ///
-    virtual bool forward(const T * angle_arr, _Vector3D<T> & effector) {
-        const T * ap = angle_arr + 1;
+    virtual bool forward(const T * param_arr, _Vector<T, 3> & dst) {
+        const T * ap = param_arr + 1;
         const _PlanarJoint_t<T> *cp = this->config + 1;
+        _Vector3D<T> effector(config[0].length, 0, 0);
         T a = 0;
 
-        effector.x = config[0].length;
-        effector.y = 0;
-        effector.z = 0;
-        
         for (size_t i = 1; i < DOF; i++) {
             a += cp->constraints.limit(*ap);
 
@@ -66,15 +63,15 @@ public:
             ++ap;
         }
         const T tmp_x = effector.x;
-        effector.x = tmp_x * cos(angle_arr[0]);
-        effector.y = tmp_x * sin(angle_arr[0]);
+        dst.data()[0] = tmp_x * cos(param_arr[0]);
+        dst.data()[1] = tmp_x * sin(param_arr[0]);
+        dst.data()[2] = effector.z;
         return true;
     }
 
-    virtual bool inverse(const _Vector3D<T> & target, const T * current_angle_arr, T * angle_arr, _Vector3D<T> & actual, T eps, size_t max_iterations) {
-        #if defined IK_SOLVER_CCD
-        #elif IK_SOLVER_JACOBIAN
-        #error Jacobian IK Solver not implemented
+    virtual bool inverse(const _Vector<T, 3> & target, const T * current_param_arr, T * param_arr, _Vector<T, 3> & actual, T eps, size_t max_iterations) {
+        #if defined(IK_SOLVER_CCD)
+        #elif defined(IK_SOLVER_JACOBIAN)
         #else
         #error Please specify a solver (IK_SOLVER_CCD or IK_SOLVER_JACOBIAN)
         #endif

@@ -1,35 +1,61 @@
 #if  defined(UNIT_TEST)
 
+#define REAL_T float
+
 #if defined(ARDUINO)
 #include <Arduino.h>
 
-#define REAL_T float
-
-template<typename T> void print_matrix(const T& m, size_t N, size_t M, const char * name) {
-    Serial.print("matrix ");
-    Serial.println(name);
-    for (int row = 0; row < N; row++) {
-        for (int col=0;col<M;col++) {
-            Serial.print(" ");
-            Serial.print(m.val(row, col), 6);
-        }
-        Serial.println();
-    }
+namespace Locomotion{
+template<typename T, size_t N, size_t M> class _Matrix;
+template<typename T, size_t N> class _Vector;
 }
 
-template<typename T> void print_vector(const T& v, size_t N, const char * name) {
+template<typename T, size_t N, size_t M> void print_matrix(const Locomotion::_Matrix<T, N, M>& m, const char * name) {
+    Serial.print("matrix ");
+    Serial.println(name);
+    Serial.println("    {");
+    for (int row = 0; row < N; row++) {
+        Serial.print("        {");
+        for (int col=0;col<M;col++) {
+            if (col != 0) 
+                Serial.print(", ");
+            Serial.print(m.val(row, col), 6);
+        }
+        if (row != N - 1)
+            Serial.println("},");
+        else
+            Serial.println("}");
+    }
+    Serial.println("    }");
+}
+
+template<typename T, size_t N> void print_vector(const Locomotion::_Vector<T, N> & v, const char * name) {
     Serial.print("vector ");
     Serial.println(name);
-    for (int col=0;col<N;col++) {
-        Serial.print(" ");
-        Serial.print(v.data()[col], 6);
+    Serial.print("    {");
+    for (int row = 0; row < N; row++) {
+        if (row != 0) 
+            Serial.print(", ");
+        Serial.print(v.val(row), 6);
     }
-    Serial.println();
+    Serial.println("}");
+}
+template<typename T, size_t N> void print_arr(const T * v, const char * name) {
+    Serial.print("Array ");
+    Serial.println(name);
+    Serial.print("    {");
+    for (int row = 0; row < N; row++) {
+        if (row != 0) 
+            Serial.print(", ");
+        Serial.print(v[row], 6);
+    }
+    Serial.println("}");
 }
 
 template<typename T> void print_val(const T a, const char * name) {
     Serial.print("value ");
-    Serial.println(name);
+    Serial.print(name);
+    Serial.print(": ");
     Serial.println(a, 6);
 }
 
