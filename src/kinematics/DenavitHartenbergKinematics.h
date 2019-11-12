@@ -110,7 +110,7 @@ public:
         return forward(H0n, param_arr, effector);
     }
     bool forward(const _Matrix<T, 4, 4> & H0n, const T * param_arr, _Vector<T, 3> & effector) {
-        GET_COL<T, 4, 3>(effector.data(), H0n.data() + 3);
+        H0n.get_col(effector, 3);
         return true;
     }
 

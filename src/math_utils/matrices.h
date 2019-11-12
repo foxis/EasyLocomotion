@@ -124,6 +124,43 @@ public:
             this->row(i)[i] = m.val(i);
     }
 
+    template<size_t K>
+    void get_row(_Vector<T, K> & v, size_t row, size_t col=0) const {
+        GET_ROW<T, K>(v.data(), this->row(row) + col);
+    }
+    template<size_t K>
+    void get_col(_Vector<T, K> & v, size_t row, size_t col) const {
+        GET_COL<T, M, K>(v.data(), this->row(row) + col);
+    }
+    template<size_t K>
+    void get_col(_Vector<T, K> & v, size_t col) const {
+        GET_COL<T, M, K>(v.data(), this->data() + col);
+    }
+    template<size_t K>
+    void set_row(const _Vector<T, K> & v, size_t row, size_t col=0) {
+        SET_ROW<T, K>(this->row(row) + col, v.data());
+    }
+    template<size_t K>
+    void set_col(const _Vector<T, K> & v, size_t row, size_t col) {
+        SET_COL<T, M, K>(this->row(row) + col, v.data());
+    }
+    template<size_t K>
+    void set_col(const _Vector<T, K> & v, size_t col) {
+        SET_COL<T, M, K>(this->data() + col, v.data());
+    }
+    template<size_t K>
+    void set_row(T c, size_t row, size_t col=0) {
+        SET_ROW<T, K>(this->row(row) + col, c);
+    }
+    template<size_t K>
+    void set_col(T c, size_t row, size_t col) {
+        SET_COL<T, M, K>(this->row(row) + col, c);
+    }
+    template<size_t K>
+    void set_col(T c, size_t col) {
+        SET_COL<T, M, K>(this->data() + col, c);
+    }
+
     void add(const _Matrix<T, N, M> & m) {
         add(m, *this);
     }
@@ -1151,10 +1188,10 @@ public:
         *(dp++) = *(sp++);
     }
     void set_scale(const _Vector<T, 3> & v) {
-        SET_ROW<T, 3>(this->row(3), v.data());
+        this->set_row(v, 3);
     }
     void set_translation(const _Vector<T, 3> & v) {
-        SET_COL<T, 4, 3>(this->data() + 3, v.data());
+        this->set_col(v, 3);
     }
 
     void homogenous(const _Vector<T, 3> & rot, const _Vector<T, 3> & trans, const _Vector<T, 3> & scale) {
@@ -1173,18 +1210,18 @@ public:
     void homogenous(const _Matrix<T, 3, 3> & rot, const _Vector<T, 3> & trans) {
         this->set_rotation(rot);
         this->set_translation(trans);
-        SET_ROW<T, 3>(this->row(3), 0.0);
+        this->set_row<3>(0, 3);
         this->row(3)[3] = 1;
     }
 
-    void homogenous_inverse(_Matrix<T, 4, 4> & dst) {
+    void homogenous_inverse(_Matrix<T, 4, 4> & dst) const {
         _Matrix4x4<T> R;
         _Matrix4x4<T> t;
         for (size_t i = 0; i < 3; i++)
             for (size_t j = 0; j < 3; j++)
                 R.row(i)[j] = this->row(j)[i];
-        SET_ROW<T, 3>(R.row(3), 0.0);
-        SET_COL<T, 4, 3>(R.data() + 3, 0.0);
+        R.template set_row<3>(0.0, 3);
+        R.template set_col<3>(0.0, 3);
         R.row(3)[3] = 1.0;
         t.eye();
         t.row(0)[3] = -this->row(0)[3];

@@ -49,6 +49,16 @@ public:
 	void operator = (const _Vector<T, N> & v) {
 		this->container._copy(v.container, N);
 	}
+
+    template<size_t K>
+    void get_col(_Vector<T, K> & v, size_t row=0) const {
+		memcpy(v.data(), this->data() + row, sizeof(T) * K);
+    }
+    template<size_t K>
+    void set_col(const _Vector<T, K> & v, size_t row=0) const {
+		memcpy(this->data() + row, v.data(), sizeof(T) * K);
+    }
+
 	/// will call a function on each element. basically doing Ai = f(Ai)
 	void map(std::function<T (size_t idx, T val, void * params)> setter, void * params = NULL) {
 		T *p = this->data();
