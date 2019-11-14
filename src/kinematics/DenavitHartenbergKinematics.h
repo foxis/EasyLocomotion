@@ -47,12 +47,13 @@ namespace Locomotion {
 template<typename T, size_t DOF> class _DenavitHartenbergKinematics : public _LimbKinematicsModel<T> {
 public:
     const T * parameters;
+    T joint_types[DOF];
     const _ConstraintSegment<T> * constraints;
     const _ConstraintVolume<T>& _working_space;
-    _Matrix4x4<T> transforms[DOF];
+    _Matrix4x4<T> H0i[DOF + 1];
 
-    bool calculate_transform(size_t frame, T parameter) {
-        T * p = this->transforms[frame].data();
+    bool calculate_transform(size_t frame, T parameter, _Matrix<T, 4, 4> & H) {
+        T * p = H.data();
         const T * pparam = this->parameters + frame * 5;
         T theta = pparam[0];
         T alpha = pparam[1];
@@ -92,6 +93,8 @@ public:
 public:
     _DenavitHartenbergKinematics(const T * DH_parameters, const _ConstraintSegment<T> * param_constraints, const _ConstraintVolume<T> & working_space)
         : parameters(DH_parameters), constraints(param_constraints), _working_space(working_space) {
+        for (size_t i = 0; i < DOF; i++)
+            this->joint_types[i] = DH_parameters[I * 5 + 4];
     }
     ~_DenavitHartenbergKinematics() {
     }
@@ -100,14 +103,15 @@ public:
     /// assuming that the first joint is rotation about y axis
     ///
     virtual bool forward(const T * param_arr, _Vector<T, 3> & effector) {
-        _Matrix4x4<T> H0n;
-        for (size_t i = 0; i < DOF; i++) 
-            if (!calculate_transform(i, param_arr[i]))
+        _Matrix4x4<T> H;
+        H0i[0].eye();
+        for (size_t i = 0; i < DOF; i++) {
+            if (!calculate_transform(i, param_arr[i], H))
                 return false;
-        H0n = this->transforms[0];
-        for (size_t i = 1; i < DOF; i++)
-            H0n = H0n * this->transforms[i];
-        return forward(H0n, param_arr, effector);
+            H0i[i].mul_mat(H, H0i[i + 1]);
+        }
+
+        return forward(H0i[DOF], param_arr, effector);
     }
     bool forward(const _Matrix<T, 4, 4> & H0n, const T * param_arr, _Vector<T, 3> & effector) {
         H0n.get_col(effector, 3);
@@ -115,16 +119,17 @@ public:
     }
 
     virtual bool inverse(const _Vector<T, 3> & target, const T * current_param_arr, T * param_arr, _Vector<T, 3> & actual, T eps, size_t max_iterations) {
-        T error, eps2 = SQR(eps);
+        T eps2 = SQR(eps);
+        _Vector3D<T> error;
         for (size_t iter = 0; iter < max_iterations + 1; iter++) {
             if (!forward(current_param_arr, actual))
                 return false;
-            error = target.distanceSqr(actual);
-            if (error < eps2)
+            target.sub(actual, error);
+            if (error.magnitudeSqr() < eps2)
                 return true;
             if (iter == max_iterations)
                 return false;
-            if (!ik_solver_jacobian_pos<T, DOF>(this->transforms, target, param_arr))
+            if (!ik_solver_jacobian_pos<T, DOF>(this->H0i, this->joint_types, error, param_arr))
                 return false;
         }
 

@@ -26,49 +26,59 @@
 namespace Locomotion {
 
 template<typename T, size_t DOF>
-bool ik_solver_jacobian_pos(const _Matrix<T, 4, 4> * transforms, const _Vector<T, 3> & v, T * param_arr) {
-    _MatrixStatic<T, 3, DOF> J;
-    _MatrixStatic<T, DOF, 3> Jinv;
-    _Matrix4x4<T> H0n = transforms[0];
-    _VectorFromArr<T, DOF> params(param_arr);
-    J.row(0)[0] = 0;
-    J.row(1)[0] = 0;
-    J.row(2)[0] = 1;
-    for (size_t i = 1; i < DOF; i++) {
-        J.row(0)[i] = H0n.row(0)[3];
-        J.row(1)[i] = H0n.row(1)[3];
-        J.row(2)[i] = H0n.row(2)[3];
-        H0n = H0n * transforms[i];
-    }
-    if (!J.pinv(Jinv))
-        return false;
-    J.mul(v, params);
-    return true;
-}
-
-template<typename T, size_t DOF>
-bool ik_solver_jacobian(const _Matrix<T, 4, 4> * H, const T * joint_types, const _Vector<T, 3> & v, const _Vector<T, 3> & w, T * param_arr) {
+bool ik_solver_jacobian_pos(const _Matrix<T, 4, 4> * H0i, const T * joint_types, const _Vector<T, 3> & v, T * param_arr) {
     _MatrixStatic<T, 6, DOF> J;
     _MatrixStatic<T, DOF, 6> Jinv;
-    _Matrix4x4<T> H0i[DOF + 1];
     _VectorFromArr<T, DOF> params(param_arr);
     _VectorStatic<T, 6> vw;
-    _Vector3D<T> d, dn;
-    _Vector3D<T> R(0, 0, 1);
+    _Vector3D<T> d, di, dn;
+    _Vector3D<T> R(0.0, 0.0, 1.0);
 
     vw.set_col(v);
     vw.set_col(w, 3);
 
-    H0i[0].eye();
-    for (size_t i = 0; i < DOF; i++)
-        H0i[i].mul_mat(H[i], H0i[i + 1]);
     H0i[DOF].get_col(dn, 3);
 
     for (size_t i = 0; i < DOF; i++) {
         H0i[i].get_col(R, 2);
 
         if (int(joint_types[i]) == 0) {
-            // R x (dn - di)
+            H0i[i].get_col(di, 3);
+            dn.sub(d, di);
+            R.cross(d, di);
+            J.set_col(di, 0, i);
+            J.set_col(R, 3, i);
+        } else
+            return false;
+    }
+    if (!J.pinv(Jinv))
+        return false;
+    J.mul(vw, params);
+    return true;
+}
+
+template<typename T, size_t DOF>
+bool ik_solver_jacobian(const _Matrix<T, 4, 4> * H0i, const T * joint_types, const _Vector<T, 3> & v, const _Vector<T, 3> & w, T * param_arr) {
+    _MatrixStatic<T, 6, DOF> J;
+    _MatrixStatic<T, DOF, 6> Jinv;
+    _VectorFromArr<T, DOF> params(param_arr);
+    _VectorStatic<T, 6> vw;
+    _Vector3D<T> d, di, dn;
+    _Vector3D<T> R(0.0, 0.0, 1.0);
+
+    vw.set_col(v);
+    vw.set_col(w, 3);
+
+    H0i[DOF].get_col(dn, 3);
+
+    for (size_t i = 0; i < DOF; i++) {
+        H0i[i].get_col(R, 2);
+
+        if (int(joint_types[i]) == 0) {
+            H0i[i].get_col(di, 3);
+            dn.sub(d, di);
+            R.cross(d, di);
+            J.set_col(di, 0, i);
             J.set_col(R, 3, i);
         } else if (int(joint_types[i]) == 3) {
             J.set_col(R, i);
