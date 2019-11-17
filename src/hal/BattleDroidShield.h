@@ -22,7 +22,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include "../effectors/PCA9685.h"
+#include "../devices/PCA9685.h"
 #include "MotorDriverBase.h"
 
 #define PCA9685_SUBADR1 0x2

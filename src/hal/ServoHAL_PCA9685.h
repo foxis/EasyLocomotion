@@ -21,7 +21,7 @@
 #define SERVO_HAL_PCA9685_H
 
 #include "ServoHAL.h"
-#include "../effectors/PCA9685.h"
+#include "../devices/PCA9685.h"
 
 namespace Locomotion {
 
