@@ -27,7 +27,7 @@ class _DifferentialDriveController {
 public:
 	_DifferentialDriveController(T wheelBase) : _wheelBase(wheelBase) {}
 protected:
-	T wheelBase;
+	T _wheelBase;
 
 	virtual void setSpeed(T a, T b) = 0;
 

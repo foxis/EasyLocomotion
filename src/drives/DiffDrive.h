@@ -40,23 +40,22 @@ public:
 
   _DiffDrive(uint8_t AA, uint8_t AB, uint8_t BA, uint8_t BB, uint16_t motorConst, T wheelBase)
 		:_Locomotion<T>(),
-		 _DifferentialDriveController<T>(),
+		 _DifferentialDriveController<T>(wheelBase),
 		 SimpleHBridge(AA, AB, BA, BB, motorConst)
   {
-    _wheelBase = wheelBase;
 		//thrust_off_timeout = 0;
   }
 
   virtual void begin()
   {
 		_Locomotion<T>::begin();
-		_SimpleHBridge::begin();
+		SimpleHBridge::begin();
 	}
 
 	virtual void setThrust(const _Quaternion<T>& thrust) {
 		_Locomotion<T>::setThrust(thrust);
-		setCurrentThrust(thrust);
-		setDiffSpeed(thrust.x, thrust.w);
+		_Locomotion<T>::setCurrentThrust(thrust);
+		_DifferentialDriveController<T>::setDifferentialSpeed(thrust.x, thrust.w);
 	}
 
 protected:

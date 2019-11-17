@@ -268,7 +268,7 @@ namespace Locomotion {
 				motor += .17;
 			else if (motor < -eps)
 				motor -= .17;
-	    setDiffSpeed(motor, softcap(headingControl));
+	    setDifferentialSpeed(motor, softcap(headingControl));
 	  }
 
 	  void DetermineSpeed()
