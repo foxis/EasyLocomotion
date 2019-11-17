@@ -26,7 +26,7 @@
 namespace Locomotion {
 
 template<typename T, size_t DOF>
-bool ik_solver_jacobian_pos(const _Matrix<T, 4, 4> * H0i, const T * joint_types, const _Vector<T, 3> & v, T * param_arr) {
+bool ik_solver_jacobian_pos(const _Matrix<T, 4, 4> * H0i, const uint8_t * joint_types, const _Vector<T, 3> & v, T * param_arr) {
     _MatrixStatic<T, 6, DOF> J;
     _MatrixStatic<T, DOF, 6> Jinv;
     _VectorFromArr<T, DOF> params(param_arr);
@@ -42,12 +42,14 @@ bool ik_solver_jacobian_pos(const _Matrix<T, 4, 4> * H0i, const T * joint_types,
     for (size_t i = 0; i < DOF; i++) {
         H0i[i].get_col(R, 2);
 
-        if (int(joint_types[i]) == 0) {
+        if (joint_types[i] == 0) {
             H0i[i].get_col(di, 3);
             dn.sub(d, di);
             R.cross(d, di);
             J.set_col(di, 0, i);
             J.set_col(R, 3, i);
+        } else if (joint_types[i] == 3) {
+            J.set_col(R, i);
         } else
             return false;
     }
@@ -58,7 +60,7 @@ bool ik_solver_jacobian_pos(const _Matrix<T, 4, 4> * H0i, const T * joint_types,
 }
 
 template<typename T, size_t DOF>
-bool ik_solver_jacobian(const _Matrix<T, 4, 4> * H0i, const T * joint_types, const _Vector<T, 3> & v, const _Vector<T, 3> & w, T * param_arr) {
+bool ik_solver_jacobian(const _Matrix<T, 4, 4> * H0i, const uint8_t * joint_types, const _Vector<T, 3> & v, const _Vector<T, 3> & w, T * param_arr) {
     _MatrixStatic<T, 6, DOF> J;
     _MatrixStatic<T, DOF, 6> Jinv;
     _VectorFromArr<T, DOF> params(param_arr);
@@ -74,13 +76,13 @@ bool ik_solver_jacobian(const _Matrix<T, 4, 4> * H0i, const T * joint_types, con
     for (size_t i = 0; i < DOF; i++) {
         H0i[i].get_col(R, 2);
 
-        if (int(joint_types[i]) == 0) {
+        if (joint_types[i] == 0) {
             H0i[i].get_col(di, 3);
             dn.sub(d, di);
             R.cross(d, di);
             J.set_col(di, 0, i);
             J.set_col(R, 3, i);
-        } else if (int(joint_types[i]) == 3) {
+        } else if (joint_types[i] == 3) {
             J.set_col(R, i);
         } else
             return false;

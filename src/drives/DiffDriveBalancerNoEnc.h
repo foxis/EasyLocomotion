@@ -20,13 +20,11 @@
 #if !defined(DIFFDRIVEBALANCERNOENC_H)
 #define DIFFDRIVEBALANCERNOENC_H
 
-#include "Arduino.h"
-#include <Wire.h>
 #define SENSORS_MPU6050_ATTACHED
 #include <Sensors.h>
 #include "DiffDrive.h"
-#include "MadgwickAHRS/MadgwickAHRS.h"
-#include "PID/PID.h"
+#include "math_utils/MadgwickAHRS.h"
+#include "controllers/PID.h"
 
 namespace Locomotion {
 	//#define USE_LOGGING 1
@@ -47,25 +45,26 @@ namespace Locomotion {
 	} log_t;
 	#endif
 
-	class DiffDriveBalancerNoEncoders : public DiffDrive
+	template<typename T>
+	class _DiffDriveBalancerNoEncoders : public _DiffDrive<T>
 	{
-	  Madgwick filter;
-	  PID pidInclination;
-	  PID pidHeading;
-	  PID pidSpeed;
+	  _Madgwick<T> filter;
+	  _PID<T> pidInclination;
+	  _PID<T> pidHeading;
+	  _PID<T> pidSpeed;
 
 		int imu_sda, imu_scl, imu_addr;
 
 	  long prevTimeStamp;
 	  long duration;
 	  long fps;
-		unsigned long stabilizingStart = 0;
+	  unsigned long stabilizingStart = 0;
 
 	  // PID input/output/target
-	  double currentInclination = 0, fwdControl, targetInclination = -.0475;
-	  double currentHeading = 0, headingControl, targetHeading = 0;
-	  double currentSpeed = 0, targetSpeed = 0;
-		bool stabilizing = true;
+	  T currentInclination = 0, fwdControl, targetInclination = -.0475;
+	  T currentHeading = 0, headingControl, targetHeading = 0;
+	  T currentSpeed = 0, targetSpeed = 0;
+	  bool stabilizing = true;
 
 	#ifdef USE_LOGGING
 		volatile bool dumping = false;
@@ -75,8 +74,7 @@ namespace Locomotion {
 	#endif
 
 	public:
-	  DiffDriveBalancerNoEncoders(long fps, int imu_sda, int imu_scl, int imu_addr, int AA, int AB, int BA, int BB, real_t wheelBase)
-		//:pidInclination(&currentInclination, &fwdControl, &targetInclination, 8.0, 0.0, 0.09, DIRECT),
+	  DiffDriveBalancerNoEncoders(long fps, int imu_sda, int imu_scl, int imu_addr, int AA, int AB, int BA, int BB, T wheelBase)
 	    :pidInclination(&currentInclination, &fwdControl, &targetInclination, 5.0, 19.0, 0.09, DIRECT),
 	    pidHeading(&currentHeading, &headingControl, &targetHeading, 0.1, 0.0, 0.001, DIRECT),
 	    pidSpeed(&currentSpeed, &targetInclination, &targetSpeed, .4, .6, 0.01, REVERSE),
@@ -110,7 +108,7 @@ namespace Locomotion {
 	    prevTimeStamp = micros();
 	  }
 
-	  void loop(unsigned long now)
+	  void loop(timestamp_t now)
 	  {
 	    if ( now - prevTimeStamp > duration ) {
 				#ifdef USE_LOGGING
@@ -162,15 +160,15 @@ namespace Locomotion {
 	  //
 	  // Control methods
 	  //
-	  void setSpeed(double speed)
+	  void setSpeed(T speed)
 	  {
 	    targetSpeed = speed;
 	  }
-		void setHeading(double heading)
+		void setHeading(T heading)
 	  {
 	    targetHeading = heading;
 	  }
-		void setInclination(double incl)
+		void setInclination(T incl)
 	  {
 	    targetInclination = incl;
 	  }
@@ -178,15 +176,15 @@ namespace Locomotion {
 	  //
 	  // control parameters
 	  //
-	  void setInclinationPID(double P, double I, double D)
+	  void setInclinationPID(T P, T I, T D)
 	  {
 	    pidInclination.SetTunings(P, I, D);
 	  }
-	  void setSpeedPID(double P, double I, double D)
+	  void setSpeedPID(T P, T I, T D)
 	  {
 	    pidSpeed.SetTunings(P, I, D);
 	  }
-	  void setHeadingPID(double P, double I, double D)
+	  void setHeadingPID(T P, T I, T D)
 	  {
 	    pidHeading.SetTunings(P, I, D);
 	  }
@@ -194,20 +192,20 @@ namespace Locomotion {
 	  //
 	  // Diagnostics methods
 	  //
-	  double getRollRadians()
+	  T getRollRadians()
 	  {
 	    return filter.getRollRadians();
 	  }
-	  double getYawRadians()
+	  T getYawRadians()
 	  {
 	    return filter.getYawRadians();
 	  }
-	  double getPitchRadians()
+	  T getPitchRadians()
 	  {
 	    return filter.getPitchRadians();
 	  }
 
-	  String formatString(float current, float target)
+	  String formatString(T current, T target)
 	  {
 	    char tmp[64];
 	    sprintf(tmp, "%.03f - %.03f", current, target);
@@ -250,7 +248,7 @@ namespace Locomotion {
 	#endif
 
 	private:
-	  double softcap(double x)
+	  T softcap(T x)
 	  {
 	    //double ex = exp(5 * x);
 	    //return 2.0 * ex / (1.0 + ex) - 1;
@@ -264,8 +262,8 @@ namespace Locomotion {
 
 	  void ApplyControls()
 	  {
-			double motor = softcap(fwdControl);
-			double eps = .01;
+			T motor = softcap(fwdControl);
+			T eps = .01;
 			if (motor > eps)
 				motor += .17;
 			else if (motor < -eps)
@@ -275,8 +273,8 @@ namespace Locomotion {
 
 	  void DetermineSpeed()
 	  {
-			double alpha = .01;
-			double drive_speed = fwdControl; //ddrive.getSpeed();
+			T alpha = .01;
+			T drive_speed = fwdControl; //ddrive.getSpeed();
 	    currentSpeed = currentSpeed * (1.0 - alpha) + drive_speed * alpha;
 	  }
 
@@ -302,6 +300,8 @@ namespace Locomotion {
 	    return 0;
 	  }
 	};
+
+	typedef _DiffDriveBalancerNoEncoders<real_t> DiffDriveBalancerNoEncoders;
 
 };
 

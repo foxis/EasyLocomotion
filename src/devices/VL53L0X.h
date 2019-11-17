@@ -94,10 +94,9 @@
 #if !defined(VL53L0X_H)
 #define VL53L0X_H
 
-#include <Wire.h>
-#include "../TwoWireDevice.h"
+#include "../hal/TwoWireDevice.h"
 #include "../math_utils.h"
-#include "rangesensorbase.h"
+#include "../hal/rangesensorbase.h"
 #include "VL53L0X_tuning.h"
 
 namespace Locomotion {
@@ -108,7 +107,8 @@ namespace Locomotion {
 // VL53L0X is a I2C TOF laser ranging chip
 // Adapted code from https://github.com/pololu/vl53l0x-arduino
 //
-class VL53L0X : public TwoWireDevice, public RangeSensorBase {
+template<typename T>
+class _VL53L0X : public TwoWireDevice, public _RangeSensorBase<T> {
 	// register addresses from API vl53l0x_device.h (ordered as listed there)
 	 enum regAddr
 	 {
@@ -218,13 +218,13 @@ public:
 	enum vcselPeriodType { VcselPeriodPreRange, VcselPeriodFinalRange };
 
 public:
-	VL53L0X(TwoWire * wire)
-		: VL53L0X(wire, VL53L0X_ADDRESS, NULL, NULL) { }
-	VL53L0X(TwoWire * wire, MeasurementCallback_t callback, CallbackData_t * callback_data)
-			: VL53L0X(wire, VL53L0X_ADDRESS, callback, callback_data) { }
-  VL53L0X(TwoWire * wire, byte address, MeasurementCallback_t callback, CallbackData_t * callback_data)
+	_VL53L0X(TwoWire * wire)
+		: _VL53L0X(wire, VL53L0X_ADDRESS, NULL, NULL) { }
+	_VL53L0X(TwoWire * wire, MeasurementCallback_t callback, CallbackData_t * callback_data)
+			: _VL53L0X(wire, VL53L0X_ADDRESS, callback, callback_data) { }
+  _VL53L0X(TwoWire * wire, byte address, MeasurementCallback_t callback, CallbackData_t * callback_data)
 		: TwoWireDevice(wire, address),
-		  RangeSensorBase(callback, callback_data) {
+		  _RangeSensorBase<T>(callback, callback_data) {
 			io_timeout = 0;
 			measurement_initiated = false;
 			continuous_measurement = false;
@@ -255,12 +255,12 @@ public:
 
 	void setIOTimeout(unsigned long io_timeout_us) { io_timeout = io_timeout_us; }
 
-	virtual real_t getMaxDistance() { return 2000; }
-	virtual real_t getMinDistance() { return 0; }
-	virtual real_t getMinYaw() { return -.5 * 25.0 * 3.1415 / 180.0; }
-	virtual real_t getMaxYaw() { return .5 * 25.0 * 3.1415 / 180.0; }
-	virtual real_t getMinPitch() { return -.5 * 25.0 * 3.1415 / 180.0; }
-	virtual real_t getMaxPitch() { return .5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMaxDistance() { return 2000; }
+	virtual T getMinDistance() { return 0; }
+	virtual T getMinYaw() { return -.5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMaxYaw() { return .5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMinPitch() { return -.5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMaxPitch() { return .5 * 25.0 * 3.1415 / 180.0; }
 
 	virtual bool startSingleSampling() {
 		return startRangeSingle();
@@ -275,7 +275,7 @@ public:
 		return true;
 	}
 
-	virtual bool readMeasurement(Measurement_t * result, uint16_t max_readings, uint16_t offset = 0) {
+	virtual bool readMeasurement(typename _RangeSensorBase<T>::Measurement_t * result, size_t max_readings, size_t offset = 0) {
 		if (!continuous_measurement && !measurement_initiated) {
 			startSingleSampling();
 		}
@@ -332,7 +332,8 @@ private:
 #define calcMacroPeriod(vcsel_period_pclks) ((((uint32_t)2304 * (vcsel_period_pclks) * 1655) + 500) / 1000)
 
 
-bool VL53L0X::calibrate() {
+template<typename T>
+bool _VL53L0X<T>::calibrate() {
 	write8(SYSTEM_SEQUENCE_CONFIG, 0x01);
 	if (!performSingleRefCalibration(0x40)) { return false; }
 	write8(SYSTEM_SEQUENCE_CONFIG, 0x02);
@@ -349,7 +350,8 @@ bool VL53L0X::calibrate() {
 // enough unless a cover glass is added.
 // If io_2v8 (optional) is true or not given, the sensor is configured for 2V8
 // mode.
-bool VL53L0X::init(bool io_2v8)
+template<typename T>
+bool _VL53L0X<T>::init(bool io_2v8)
 {
   // VL53L0X_DataInit() begin
 
@@ -467,7 +469,8 @@ bool VL53L0X::init(bool io_2v8)
 // seems to increase the likelihood of getting an inaccurate reading because of
 // unwanted reflections from objects other than the intended target.
 // Defaults to 0.25 MCPS as initialized by the ST API and this library.
-bool VL53L0X::setSignalRateLimit(float limit_Mcps)
+template<typename T>
+bool _VL53L0X<T>::setSignalRateLimit(float limit_Mcps)
 {
   if (limit_Mcps < 0 || limit_Mcps > 511.99) { return false; }
 
@@ -477,7 +480,8 @@ bool VL53L0X::setSignalRateLimit(float limit_Mcps)
 }
 
 // Get the return signal rate limit check value in MCPS
-float VL53L0X::getSignalRateLimit(void)
+template<typename T>
+float _VL53L0X<T>::getSignalRateLimit(void)
 {
   return (float)read16(FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, MSBFirst) / (1 << 7);
 }
@@ -489,7 +493,8 @@ float VL53L0X::getSignalRateLimit(void)
 // factor of N decreases the range measurement standard deviation by a factor of
 // sqrt(N). Defaults to about 33 milliseconds; the minimum is 20 ms.
 // based on VL53L0X_set_measurement_timing_budget_micro_seconds()
-bool VL53L0X::setMeasurementTimingBudget(uint32_t budget_us)
+template<typename T>
+bool _VL53L0X<T>::setMeasurementTimingBudget(uint32_t budget_us)
 {
   SequenceStepEnables enables;
   SequenceStepTimeouts timeouts;
@@ -578,7 +583,8 @@ bool VL53L0X::setMeasurementTimingBudget(uint32_t budget_us)
 // Get the measurement timing budget in microseconds
 // based on VL53L0X_get_measurement_timing_budget_micro_seconds()
 // in us
-uint32_t VL53L0X::getMeasurementTimingBudget(void)
+template<typename T>
+uint32_t _VL53L0X<T>::getMeasurementTimingBudget(void)
 {
   SequenceStepEnables enables;
   SequenceStepTimeouts timeouts;
@@ -632,7 +638,8 @@ uint32_t VL53L0X::getMeasurementTimingBudget(void)
 //  pre:  12 to 18 (initialized default: 14)
 //  final: 8 to 14 (initialized default: 10)
 // based on VL53L0X_set_vcsel_pulse_period()
-bool VL53L0X::setVcselPulsePeriod(vcselPeriodType type, uint8_t period_pclks)
+template<typename T>
+bool _VL53L0X<T>::setVcselPulsePeriod(vcselPeriodType type, uint8_t period_pclks)
 {
   uint8_t vcsel_period_reg = encodeVcselPeriod(period_pclks);
 
@@ -809,7 +816,8 @@ bool VL53L0X::setVcselPulsePeriod(vcselPeriodType type, uint8_t period_pclks)
 
 // Get the VCSEL pulse period in PCLKs for the given period type.
 // based on VL53L0X_get_vcsel_pulse_period()
-uint8_t VL53L0X::getVcselPulsePeriod(vcselPeriodType type)
+template<typename T>
+uint8_t _VL53L0X<T>::getVcselPulsePeriod(vcselPeriodType type)
 {
   if (type == VcselPeriodPreRange)
   {
@@ -828,7 +836,8 @@ uint8_t VL53L0X::getVcselPulsePeriod(vcselPeriodType type)
 // inter-measurement period in milliseconds determining how often the sensor
 // takes a measurement.
 // based on VL53L0X_StartMeasurement()
-void VL53L0X::startContinuous(uint32_t period_ms)
+template<typename T>
+void _VL53L0X<T>::startContinuous(uint32_t period_ms)
 {
   write8(0x80, 0x01);
   write8(0xFF, 0x01);
@@ -869,7 +878,8 @@ void VL53L0X::startContinuous(uint32_t period_ms)
 
 // Stop continuous measurements
 // based on VL53L0X_StopMeasurement()
-void VL53L0X::stopContinuous(void)
+template<typename T>
+void _VL53L0X<T>::stopContinuous(void)
 {
   write8(SYSRANGE_START, 0x01); // VL53L0X_REG_SYSRANGE_MODE_SINGLESHOT
 
@@ -885,7 +895,8 @@ void VL53L0X::stopContinuous(void)
 
 // Returns a range reading in millimeters when continuous mode is active
 // or after call to startRangeSingle
-bool VL53L0X::readRangeMillimeters(Measurement_t * result, uint16_t offset)
+template<typename T>
+bool _VL53L0X<T>::readRangeMillimeters(typename _RangeSensorBase<T>::Measurement_t * result, uint16_t offset)
 {
 	if (!wait_while(RESULT_INTERRUPT_STATUS, 0x07, 0x00, io_timeout)) {
 		result->num_readings = 1;
@@ -916,7 +927,8 @@ bool VL53L0X::readRangeMillimeters(Measurement_t * result, uint16_t offset)
 // Performs a single-shot range measurement and returns the reading in
 // millimeters
 // based on VL53L0X_PerformSingleRangingMeasurement()
-bool VL53L0X::startRangeSingle(void)
+template<typename T>
+bool _VL53L0X<T>::startRangeSingle(void)
 {
   write8(0x80, 0x01);
   write8(0xFF, 0x01);
@@ -938,7 +950,8 @@ bool VL53L0X::startRangeSingle(void)
 // Private Methods /////////////////////////////////////////////////////////////
 
 // based on VL53L0X_perform_single_ref_calibration()
-bool VL53L0X::performSingleRefCalibration(uint8_t vhv_init_byte)
+template<typename T>
+bool _VL53L0X<T>::performSingleRefCalibration(uint8_t vhv_init_byte)
 {
 	write8(SYSRANGE_START, 0x01 | vhv_init_byte); // VL53L0X_REG_SYSRANGE_MODE_START_STOP
 	if (!wait_while(RESULT_INTERRUPT_STATUS, 0x07, 0x00, io_timeout))
@@ -952,7 +965,8 @@ bool VL53L0X::performSingleRefCalibration(uint8_t vhv_init_byte)
 // Get reference SPAD (single photon avalanche diode) count and type
 // based on VL53L0X_get_info_from_device(),
 // but only gets reference SPAD count and type
-bool VL53L0X::getSpadInfo(uint8_t * count, bool * type_is_aperture)
+template<typename T>
+bool _VL53L0X<T>::getSpadInfo(uint8_t * count, bool * type_is_aperture)
 {
   uint8_t tmp;
 
@@ -991,7 +1005,8 @@ bool VL53L0X::getSpadInfo(uint8_t * count, bool * type_is_aperture)
 
 // Get sequence step enables
 // based on VL53L0X_GetSequenceStepEnables()
-void VL53L0X::getSequenceStepEnables(SequenceStepEnables * enables)
+template<typename T>
+void _VL53L0X<T>::getSequenceStepEnables(SequenceStepEnables * enables)
 {
   uint8_t sequence_config = read8(SYSTEM_SEQUENCE_CONFIG);
 
@@ -1006,7 +1021,8 @@ void VL53L0X::getSequenceStepEnables(SequenceStepEnables * enables)
 // based on get_sequence_step_timeout(),
 // but gets all timeouts instead of just the requested one, and also stores
 // intermediate values
-void VL53L0X::getSequenceStepTimeouts(SequenceStepEnables const * enables, SequenceStepTimeouts * timeouts)
+template<typename T>
+void _VL53L0X<T>::getSequenceStepTimeouts(SequenceStepEnables const * enables, SequenceStepTimeouts * timeouts)
 {
   timeouts->pre_range_vcsel_period_pclks = getVcselPulsePeriod(VcselPeriodPreRange);
 
@@ -1040,7 +1056,8 @@ void VL53L0X::getSequenceStepTimeouts(SequenceStepEnables const * enables, Seque
 // based on VL53L0X_decode_timeout()
 // Note: the original function returned a uint32_t, but the return value is
 // always stored in a uint16_t.
-uint16_t VL53L0X::decodeTimeout(uint16_t reg_val)
+template<typename T>
+uint16_t _VL53L0X<T>::decodeTimeout(uint16_t reg_val)
 {
   // format: "(LSByte * 2^MSByte) + 1"
   return (uint16_t)((reg_val & 0x00FF) <<
@@ -1051,7 +1068,8 @@ uint16_t VL53L0X::decodeTimeout(uint16_t reg_val)
 // based on VL53L0X_encode_timeout()
 // Note: the original function took a uint16_t, but the argument passed to it
 // is always a uint16_t.
-uint16_t VL53L0X::encodeTimeout(uint16_t timeout_mclks)
+template<typename T>
+uint16_t _VL53L0X<T>::encodeTimeout(uint16_t timeout_mclks)
 {
   // format: "(LSByte * 2^MSByte) + 1"
 
@@ -1075,7 +1093,8 @@ uint16_t VL53L0X::encodeTimeout(uint16_t timeout_mclks)
 
 // Convert sequence step timeout from MCLKs to microseconds with given VCSEL period in PCLKs
 // based on VL53L0X_calc_timeout_us()
-uint32_t VL53L0X::timeoutMclksToMicroseconds(uint16_t timeout_period_mclks, uint8_t vcsel_period_pclks)
+template<typename T>
+uint32_t _VL53L0X<T>::timeoutMclksToMicroseconds(uint16_t timeout_period_mclks, uint8_t vcsel_period_pclks)
 {
   uint32_t macro_period_ns = calcMacroPeriod(vcsel_period_pclks);
 
@@ -1084,12 +1103,15 @@ uint32_t VL53L0X::timeoutMclksToMicroseconds(uint16_t timeout_period_mclks, uint
 
 // Convert sequence step timeout from microseconds to MCLKs with given VCSEL period in PCLKs
 // based on VL53L0X_calc_timeout_mclks()
-uint32_t VL53L0X::timeoutMicrosecondsToMclks(uint32_t timeout_period_us, uint8_t vcsel_period_pclks)
+template<typename T>
+uint32_t _VL53L0X<T>::timeoutMicrosecondsToMclks(uint32_t timeout_period_us, uint8_t vcsel_period_pclks)
 {
   uint32_t macro_period_ns = calcMacroPeriod(vcsel_period_pclks);
 
   return (((timeout_period_us * 1000) + (macro_period_ns / 2)) / macro_period_ns);
 }
+
+typedef _VL53L0X<real_t> VL53L0X;
 
 }
 

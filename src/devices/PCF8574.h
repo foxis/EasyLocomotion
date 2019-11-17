@@ -20,13 +20,12 @@
 #if !defined(PCA9685_H)
 #define PCA9685_H
 
-#include <Arduino.h>
-#include "../TwoWireDevice.h"
+#include "../hal/TwoWireDevice.h"
 
 namespace Locomotion {
 
 //
-// PCF8574 is a bidirectional Input/Output
+// PCF8574 is a bidirectional Input/Output controlled via i2c
 //
 class PCF8574 : public TwoWireDevice {
 public:

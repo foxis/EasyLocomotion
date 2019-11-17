@@ -20,9 +20,8 @@
 #if !defined(TCA9548A_VL53L0X_ARRAY_H)
 #define TCA9548A_VL53L0X_ARRAY_H
 
-#include <Wire.h>
-#include "TCA9548A.h"
-#include "VL53L0X.h"
+#include "../devices/TCA9548A.h"
+#include "../devices/VL53L0X.h"
 #include "rangesensorbase.h"
 
 namespace Locomotion {
@@ -32,16 +31,17 @@ namespace Locomotion {
 //
 // NOTE: yaw/pitch values must be already filled inside Measurement struct.
 //
-class TCA9548A_VL53L0X_Array : public RangeSensorBase {
+template<typename T>
+class _TCA9548A_VL53L0X_Array : public _RangeSensorBase<T> {
 	TCA9548A *mux;
-	VL53L0X *sensors;
+	_VL53L0X<T> *sensors;
 	size_t mux_num;
 	size_t sensor_num;
 	byte last_mux_id;
 	byte last_channel_id;
 
 public:
-	TCA9548A_VL53L0X_Array(TCA9548A * mux_arr, size_t mux_num, VL53L0X * sensors_arr, size_t sensor_num)
+	_TCA9548A_VL53L0X_Array(TCA9548A * mux_arr, size_t mux_num, _VL53L0X<T> * sensors_arr, size_t sensor_num)
 	{
 		mux = mux_arr;
 		sensors = sensors_arr;
@@ -90,12 +90,12 @@ public:
 	}
 
 
-	virtual real_t getMaxDistance() { return 2000; }
-	virtual real_t getMinDistance() { return 0; }
-	virtual real_t getMinYaw() { return -.5 * 25.0 * 3.1415 / 180.0; }
-	virtual real_t getMaxYaw() { return .5 * 25.0 * 3.1415 / 180.0; }
-	virtual real_t getMinPitch() { return -.5 * 25.0 * 3.1415 / 180.0; }
-	virtual real_t getMaxPitch() { return .5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMaxDistance() { return 2000; }
+	virtual T getMinDistance() { return 0; }
+	virtual T getMinYaw() { return -.5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMaxYaw() { return .5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMinPitch() { return -.5 * 25.0 * 3.1415 / 180.0; }
+	virtual T getMaxPitch() { return .5 * 25.0 * 3.1415 / 180.0; }
 
 	virtual bool startSingleSampling() {
 		bool timeout = false;
@@ -123,7 +123,7 @@ public:
 		return timeout;
 	}
 
-	virtual bool readMeasurement(Measurement_t * result, uint16_t max_readings, uint16_t offset) {
+	virtual bool readMeasurement(typename _RangeSensorBase<T>::Measurement_t * result, size_t max_readings, size_t offset) {
 		bool timeout = false;
 		for (size_t i = 0; i < sensor_num && i < max_readings; i++) {
 			set_channel(i);
@@ -136,7 +136,7 @@ public:
 
 
 private:
-	void set_channel(uint16_t index) {
+	void set_channel(size_t index) {
 		byte mux_id = index >> 3;
 		byte channel_id = index % 8;
 

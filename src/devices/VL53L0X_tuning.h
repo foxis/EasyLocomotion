@@ -91,7 +91,7 @@
  * -----------------------------------------------------------------
  */
 
-#include "../readwritemixin.h"
+#include "../hal/readwritemixin.h"
 
 #if !defined(VLX53L0X_TUNING_H)
 #define VLX53L0X_TUNING_H

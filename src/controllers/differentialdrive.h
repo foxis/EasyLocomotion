@@ -17,23 +17,31 @@
  *
  */
 
-#if !defined(MOTORDRIVERBASE_H)
-#define MOTORDRIVERBASE_H
-
-#include <Arduino.h>
-#include "../math_utils.h"
+#if !defined(DIFFERENTIAL_DRIVE_CONTROLLER_H)
+#define DIFFERENTIAL_DRIVE_CONTROLLER_H
 
 namespace Locomotion {
 
-class MotorDriverBase {
+template<typename T>
+class _DifferentialDriveController {
 public:
-	virtual void begin() = 0;
-	virtual void enable(bool en) = 0;
+	_DifferentialDriveController(T wheelBase) : _wheelBase(wheelBase) {}
+protected:
+	T wheelBase;
 
-	virtual void setMotorsSpeed(real_t left, real_t right) = 0;
-	virtual void setLeftSpeed(real_t a) = 0;
-	virtual void setRightSpeed(real_t b) = 0;
+	virtual void setSpeed(T a, T b) = 0;
+
+	/// power - differential drive train power
+	/// w - rotational power (normalized wL)
+	/// all control parameters range -1.0 ... +1.0
+	void setDifferentialSpeed(T power, T w)
+	{
+		T a = (2.0 * power + w) / 2.0;
+		T b = (2.0 * power - w) / 2.0;
+		setSpeed(a, b);
+	}
 };
 
-}
-#endif // MOTORDRIVERBASE_H
+};
+
+#endif

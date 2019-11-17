@@ -34,6 +34,12 @@ typedef float real_t;
 typedef REAL_T real_t;
 #endif
 
+#if !defined(TIMESTAMP_T)
+typedef uint32_t timestamp_t;
+#else
+typedef TIMESTAMP_T timestamp_t;
+#endif
+
 //-------------------------------------------------------------------------------------------
 // Fast inverse square-root
 // See: http://en.wikipedia.org/wiki/Fast_inverse_square_root

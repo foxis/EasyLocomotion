@@ -17,8 +17,8 @@
  *
  */
 
-#if !defined(SIMPLEHBRIDGE_H)
-#define SIMPLEHBRIDGE_H
+#if !defined(SIMPLE_HBRIDGE_H)
+#define SIMPLE_HBRIDGE_H
 
 #include "MotorDriverBase.h"
 

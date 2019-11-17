@@ -47,7 +47,7 @@ namespace Locomotion {
 template<typename T, size_t DOF> class _DenavitHartenbergKinematics : public _LimbKinematicsModel<T> {
 public:
     const T * parameters;
-    T joint_types[DOF];
+    uint8_t joint_types[DOF];
     const _ConstraintSegment<T> * constraints;
     const _ConstraintVolume<T>& _working_space;
     _Matrix4x4<T> H0i[DOF + 1];
@@ -94,7 +94,7 @@ public:
     _DenavitHartenbergKinematics(const T * DH_parameters, const _ConstraintSegment<T> * param_constraints, const _ConstraintVolume<T> & working_space)
         : parameters(DH_parameters), constraints(param_constraints), _working_space(working_space) {
         for (size_t i = 0; i < DOF; i++)
-            this->joint_types[i] = DH_parameters[I * 5 + 4];
+            this->joint_types[i] = (uint8_t)DH_parameters[I * 5 + 4];
     }
     ~_DenavitHartenbergKinematics() {
     }

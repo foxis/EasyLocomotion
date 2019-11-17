@@ -24,8 +24,7 @@
 #if !defined(ADNS3080_H)
 #define ADNS3080_H
 
-#include <Arduino.h>
-#include "../SPIDevice.h"
+#include "../hal/SPIDevice.h"
 
 
 #define ADNS3080_PIXELS_X                 30
@@ -67,6 +66,9 @@
 
 namespace Locomotion {
 
+///
+/// ADNS3080 mouse sensor device
+///
 class ADNS3080 : public SPIDevice
 {
 	bool _init;

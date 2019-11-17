@@ -56,37 +56,37 @@ public:
 	virtual void write(uint8_t reg, const uint8_t * data, size_t len) = 0;
 
 	uint8_t read8(uint8_t reg) {
-    uint8_t data[1] = {reg};
-    read(reg, data, sizeof(data));
-    return data[0];
-  }
+		uint8_t data[1] = {reg};
+		read(reg, data, sizeof(data));
+		return data[0];
+	}
 
 	uint16_t read16(uint8_t reg, ByteOrder order = LSBFirst) {
-    uint8_t data[2] = {};
-    read(reg, data, sizeof(data));
-		if (order == LSBFirst)
-    	return (uint16_t)(data[0]) | ((uint16_t)(data[1]) << 8);
-		else
-			return (uint16_t)(data[1]) | ((uint16_t)(data[0]) << 8);
-  }
+		uint8_t data[2] = {};
+		read(reg, data, sizeof(data));
+			if (order == LSBFirst)
+			return (uint16_t)(data[0]) | ((uint16_t)(data[1]) << 8);
+			else
+				return (uint16_t)(data[1]) | ((uint16_t)(data[0]) << 8);
+	}
 
 	uint32_t read24(uint8_t reg, ByteOrder order = LSBFirst) {
-    uint8_t data[3] = {};
-    read(reg, data, sizeof(data));
-		if (order == LSBFirst)
-			return (uint32_t)(data[0]) | ((uint32_t)(data[1]) << 8) | ((uint32_t)(data[2]) << 16);
-		else
-			return (uint32_t)(data[2]) | ((uint32_t)(data[1]) << 8) | ((uint32_t)(data[0]) << 16);
-  }
+		uint8_t data[3] = {};
+		read(reg, data, sizeof(data));
+			if (order == LSBFirst)
+				return (uint32_t)(data[0]) | ((uint32_t)(data[1]) << 8) | ((uint32_t)(data[2]) << 16);
+			else
+				return (uint32_t)(data[2]) | ((uint32_t)(data[1]) << 8) | ((uint32_t)(data[0]) << 16);
+	}
 
 	uint32_t read32(uint8_t reg, ByteOrder order = LSBFirst) {
-    uint8_t data[4] = {};
-    read(reg, data, sizeof(data));
-		if (order == LSBFirst)
-			return (uint32_t)(data[0]) | ((uint32_t)(data[1]) << 8) | ((uint32_t)(data[2]) << 16) | ((uint32_t)(data[3]) << 24);
-		else
-			return (uint32_t)(data[3]) | ((uint32_t)(data[2]) << 8) | ((uint32_t)(data[1]) << 16) | ((uint32_t)(data[0]) << 24);
-  }
+		uint8_t data[4] = {};
+		read(reg, data, sizeof(data));
+			if (order == LSBFirst)
+				return (uint32_t)(data[0]) | ((uint32_t)(data[1]) << 8) | ((uint32_t)(data[2]) << 16) | ((uint32_t)(data[3]) << 24);
+			else
+				return (uint32_t)(data[3]) | ((uint32_t)(data[2]) << 8) | ((uint32_t)(data[1]) << 16) | ((uint32_t)(data[0]) << 24);
+	}
 
 	void write8(uint8_t reg, uint8_t d) {
 		uint8_t data[] = {d};

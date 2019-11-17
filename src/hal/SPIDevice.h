@@ -24,7 +24,6 @@
 #if !defined(SPIDevice_H)
 #define SPIDevice_H
 
-#include <Arduino.h>
 #include <SPI.h>
 #include "readwritemixin.h"
 

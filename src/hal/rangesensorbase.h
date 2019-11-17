@@ -17,39 +17,40 @@
  *
  */
 
-#if !defined(RANGESENSORBASE_H)
-#define RANGESENSORBASE_H
+#if !defined(RANGE_SENSOR_BASE_H)
+#define RANGE_SENSOR_BASE_H
 
 #include <Arduino.h>
 #include "../math_utils.h"
 
 namespace Locomotion {
 
-class RangeSensorBase {
+template<typename T>
+class _RangeSensorBase {
 public:
 	typedef struct {
-		real_t distance;
-		real_t yaw;
-		real_t pitch;
+		T distance;
+		T yaw;
+		T pitch;
 	} Reading_t;
 
 	typedef struct {
 		bool timeout;
 		uint8_t status;
-		uint16_t num_readings;
+		size_t num_readings;
 		Reading_t * readings;
 	} Measurement_t;
 
 	typedef struct {
 		Measurement_t * result;
-		uint16_t max_readings;
-		uint16_t offset;
+		size_t max_readings;
+		size_t offset;
 	} CallbackData_t;
 
 	typedef void (*MeasurementCallback_t)(CallbackData_t * result);
 
-	RangeSensorBase() : RangeSensorBase(NULL, NULL) { }
-	RangeSensorBase(MeasurementCallback_t callback, CallbackData_t * callback_data) {
+	_RangeSensorBase() : _RangeSensorBase(NULL, NULL) { }
+	_RangeSensorBase(MeasurementCallback_t callback, CallbackData_t * callback_data) {
 		measurement_callback = callback;
 		this->callback_data = callback_data;
 	}
@@ -57,17 +58,17 @@ public:
 	virtual void begin(bool init) = 0;
 	virtual bool reset() = 0;
 
-	virtual real_t getMaxDistance() = 0;
-	virtual real_t getMinDistance() = 0;
-	virtual real_t getMinYaw() = 0;
-	virtual real_t getMaxYaw() = 0;
-	virtual real_t getMinPitch() = 0;
-	virtual real_t getMaxPitch() = 0;
+	virtual T getMaxDistance() = 0;
+	virtual T getMinDistance() = 0;
+	virtual T getMinYaw() = 0;
+	virtual T getMaxYaw() = 0;
+	virtual T getMinPitch() = 0;
+	virtual T getMaxPitch() = 0;
 
 	virtual bool startSingleSampling() = 0;
 	virtual bool startContinuousSampling() = 0;
 	virtual bool stopContinuousSampling() = 0;
-	virtual bool readMeasurement(Measurement_t * result, uint16_t max_readings, uint16_t offset) = 0;
+	virtual bool readMeasurement(Measurement_t * result, size_t max_readings, size_t offset) = 0;
 
 	virtual void measurementInterruptHandler() {
 		if (measurement_callback == NULL || callback_data == NULL || callback_data->result == NULL)
@@ -80,6 +81,8 @@ private:
 	MeasurementCallback_t measurement_callback;
 	CallbackData_t * callback_data;
 };
+
+typedef _RangeSensorBase<real_t> RangeSensorBase;
 
 }
 

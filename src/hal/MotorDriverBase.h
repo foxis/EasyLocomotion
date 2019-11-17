@@ -17,32 +17,27 @@
  *
  */
 
-#if !defined(LOOPER_H)
-#define LOOPER_H
+#if !defined(MOTORDRIVERBASE_H)
+#define MOTORDRIVERBASE_H
 
-#include "math_utils.h"
+#include <Arduino.h>
+#include "../math_utils.h"
 
 namespace Locomotion {
 
-class Looper {
-protected:
-	timestamp_t last_now;
-
+template<typename T>
+class _MotorDriverBase {
 public:
-	Looper() {}
-
 	virtual void begin() = 0;
+	virtual void enable(bool en) = 0;
 
-	virtual void loop(timestamp_t now) {
-		last_now = now;
-	}
-
-	virtual void loop(timestamp_t now, timestamp_t last_now) {
-		this->last_now = last_now;
-		this->loop(now);
-	}
+	virtual void setMotorsSpeed(T left, T right) = 0;
+	virtual void setLeftSpeed(T a) = 0;
+	virtual void setRightSpeed(T b) = 0;
 };
+
+typedef _MotorDriverBase<real_t> MotorDriverBase;
 
 }
 
-#endif
+#endif // MOTORDRIVERBASE_H

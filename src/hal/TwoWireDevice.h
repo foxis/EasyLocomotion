@@ -20,7 +20,6 @@
 #if !defined(TWOWIREDEVICE_H)
 #define TWOWIREDEVICE_H
 
-#include <Arduino.h>
 #include <Wire.h>
 #include "readwritemixin.h"
 

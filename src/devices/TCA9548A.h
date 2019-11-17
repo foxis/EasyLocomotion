@@ -20,8 +20,7 @@
 #if !defined(TCA9548A_H)
 #define TCA9548A_H
 
-#include <Wire.h>
-#include "../TwoWireDevice.h"
+#include "../hal/TwoWireDevice.h"
 
 namespace Locomotion {
 

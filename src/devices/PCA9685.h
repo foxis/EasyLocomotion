@@ -20,8 +20,7 @@
 #if !defined(PCA9685_H)
 #define PCA9685_H
 
-#include <Arduino.h>
-#include "../TwoWireDevice.h"
+#include "../hal/TwoWireDevice.h"
 
 #define PCA9685_SUBADR1 0x2
 #define PCA9685_SUBADR2 0x3
@@ -43,7 +42,7 @@
 namespace Locomotion {
 
 //
-// PCA9685 is a 16x PWM I2C output
+// PCA9685 is a 16x PWM output controlled by i2c
 //
 class PCA9685 : public TwoWireDevice {
 public:

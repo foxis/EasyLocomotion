@@ -20,25 +20,30 @@
 #if !defined(MPU6050_H)
 #define MPU6050_H
 
-#include <Wire.h>
 #define SENSORS_MPU6050_ATTACHED
 #include <Sensors.h>
-#include "../TwoWireDevice.h"
-#include "../MadgwickAHRS/MadgwickAHRS.h"
+#include "../hal/TwoWireDevice.h"
+#include "../math_utils/MadgwickAHRS.h"
 
-class MPU6050 : public TwoWireDevice {
-	Madgwick filter;
-	real_t fps;
-	Vector3D acceleration;
-	Vector3D gyroscope;
-	unsigned long duration;
-	unsigned long last_now;
+namespace Locomotion {
+
+///
+/// MPU6050 imu device
+///
+template<typename T>
+class _MPU6050 : public TwoWireDevice {
+	_Madgwick<T> filter;
+	T fps;
+	_Vector3D<T> acceleration;
+	_Vector3D<T> gyroscope;
+	timestamp_t duration;
+	timestamp_t last_now;
 
 public:
 	MPU6050() {}
-	MPU6050(TwoWire * wire, uint8_t addr, real_t fps) : TwoWireDevice(addr) {
-		this->fps = fps;
-		duration = 1000L / fps;
+	MPU6050(TwoWire * wire, uint8_t addr, T fps) 
+		: TwoWireDevice(addr), fps(fps), duration(1000 / fps)
+	{
 	}
 
 	virtual void begin(bool init) {
@@ -47,7 +52,7 @@ public:
 		Sensors::initialize();
 	}
 
-	virtual void loop(unsigned long now) {
+	virtual void loop(timestamp_t now) {
 		if (now - last_now > duration) {
 			Accelerometer *acc = Sensors::getAccelerometer();
 			Gyroscope *gyro = Sensors::getGyroscope();
@@ -71,18 +76,22 @@ public:
 		}
 	}
 
-	const Vector3D& getAcceleration() const {
+	const _Vector3D<T>& getAcceleration() const {
 		return acceleration;
 	}
-	const Vector3D& getGyroscope() const {
+	const _Vector3D<T>& getGyroscope() const {
 		return gyroscope;
 	}
-	Vector3D getRollPitchYaw() const {
+	_Vector3D<T> getRollPitchYaw() const {
 		return Vector3D(filter.getRollRadians(), filter.getYawRadians(), filter.getPitchRadians());
 	}
-	Quaternion getOrientation() const {
+	_Quaternion<T> getOrientation() const {
 		return filter.getQuaternion();
 	}
+}
+
+typedef _MPU6050<real_t> MPU6050;
+
 }
 
 #endif

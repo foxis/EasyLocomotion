@@ -24,19 +24,20 @@
 
 namespace Locomotion {
 
-class Locomotion {
+template<typename T>
+class _Locomotion {
 protected:
-	unsigned long last_updated;
-	Quaternion targetOrientation;
-	Quaternion currentOrientation;
+	timestamp_t last_updated;
+	_Quaternion<T> targetOrientation;
+	_Quaternion<T> currentOrientation;
 
-	Quaternion targetThrust;
-	Quaternion currentThrust;
+	_Quaternion<T> targetThrust;
+	_Quaternion<T> currentThrust;
 
-	unsigned long thrust_off_timeout;
+	timestamp_t thrust_off_timeout;
 
 public:
-	Locomotion() {
+	_Locomotion() {
 		last_updated = 0;
 		thrust_off_timeout = 2000;
 	}
@@ -47,7 +48,7 @@ public:
 		setCurrentThrust(Quaternion_ZERO);
 		setThrust(Quaternion_ZERO);
 	}
-	virtual void loop(unsigned long now)
+	virtual void loop(timestamp_t now)
 	{
 		if (thrust_off_timeout > 0 && now - last_updated > thrust_off_timeout) {
 			setThrust(Quaternion_ZERO);
@@ -55,48 +56,50 @@ public:
 		}
 	}
 
-	virtual void updated(unsigned long now) {
+	virtual void updated(timestamp_t now) {
 		last_updated = now;
 	}
-	virtual void updated(unsigned long now, unsigned long timeout) {
+	virtual void updated(timestamp_t now, timestamp_t timeout) {
 		last_updated = now;
 		thrust_off_timeout = timeout;
 	}
 
-	virtual void setOrientation(const Quaternion& orientation) {
+	virtual void setOrientation(const _Quaternion<T>& orientation) {
 		targetOrientation = orientation;
 	}
-	virtual const Quaternion& getOrientation() const {
+	virtual const _Quaternion<T>& getOrientation() const {
 		return currentOrientation;
 	}
-	virtual const Quaternion& getTargetOrientation() const {
+	virtual const _Quaternion<T>& getTargetOrientation() const {
 		return targetOrientation;
 	}
 
-	virtual void setThrust(const Quaternion& thrust)
+	virtual void setThrust(const _Quaternion<T>& thrust)
 	{
 		targetThrust = thrust;
 	}
-	virtual const Quaternion& getThrust() const
+	virtual const _Quaternion<T>& getThrust() const
 	{
 		return currentThrust;
 	}
-	virtual const Quaternion& getTargetThrust() const
+	virtual const _Quaternion<T>& getTargetThrust() const
 	{
 		return targetThrust;
 	}
 
 protected:
-	virtual void setCurrentOrientation(const Quaternion& orientation) {
+	virtual void setCurrentOrientation(const _Quaternion<T>& orientation) {
 		currentOrientation = orientation;
 	}
 
-	virtual void setCurrentThrust(const Quaternion& thrust)
+	virtual void setCurrentThrust(const _Quaternion<T>& thrust)
 	{
 		currentThrust = thrust;
 	}
 
 };
+
+typedef _Locomotion<real_t> Locomotion;
 
 }
 

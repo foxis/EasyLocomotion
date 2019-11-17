@@ -29,6 +29,9 @@ namespace Locomotion {
 #define IK_SOLVER_JACOBIAN
 #endif
 
+///
+/// Linked joint chain kinematics model base
+/// T - type of joint parameter
 template<typename T> class _LimbKinematicsModel {
 public:
     virtual _Vector3D<T> forward(const T * param_arr) {
@@ -44,15 +47,21 @@ public:
 
 typedef _LimbKinematicsModel<real_t> LimbKinematicsModel;
 
+///
+/// Limb position and orientation relative to body center
+///
 template<typename T>
 struct _LimbConfig_t {
 	_Vector3D<T> displacement;
 	_Vector3D<T> orientation;
 };
 
+///
+/// Body kinematics model using limbs
+/// T - type for mathematical operations
+/// LIMBS - number of limbs
 template<typename T, size_t LIMBS> class _BodyModel {
 protected:
-    typedef T* LimbArr_t;
     typedef _LimbKinematicsModel<T> * LimbModelPtr_t;
 
 	LimbModelPtr_t *limbs;
@@ -62,8 +71,8 @@ protected:
 
 public:
     // holders for joint parameters for each limb
-	LimbArr_t current_joints[LIMBS];
-	LimbArr_t target_joints[LIMBS];
+	T *current_joints;
+	T *target_joints;
 
     // all coordinates are in body space
     _ConstraintVolume<T> working_space[LIMBS];
@@ -80,23 +89,23 @@ public:
 public:
 	_BodyModel(LimbModelPtr_t * limbs, const _LimbConfig_t<T> * limb_config, const _Vector3D<T> & position, const _Vector3D<T> & orientation)
 		: limbs(limbs), limb_config(limb_config) {
+        size_t total_joints = 0;
 		for (size_t i = 0; i < LIMBS; i ++) {
             const size_t dof = limbs[i]->dof();
-            current_joints[i] = new T[dof];
-            target_joints[i] = new T[dof];
-            memset(current_joints[i], 0, sizeof(T) * dof);
-            memset(target_joints[i], 0, sizeof(T) * dof);
+            total_joints += dof;
 		}
+        current_joints = new T[total_joints];
+        target_joints = new T[total_joints];
+        memset(current_joints[i], 0, sizeof(T) * total_joints);
+        memset(target_joints[i], 0, sizeof(T) * total_joints);
         set_transform(position, orientation);
         calculate_transforms();
         forward_limbs();
         fix_reference();
 	}
     ~_BodyModel() {
-        for (size_t i = 0; i < LIMBS; i++) {
-            delete[] current_joints[i];
-            delete[] target_joints[i];
-        }
+        delete[] current_joints[i];
+        delete[] target_joints[i];
     }
 
     void set_transform(const _Vector3D<T> & position, const _Vector3D<T> & orientation) {
@@ -198,11 +207,13 @@ public:
         _Vector4D<T> pos_4;
         _Vector4D<T> tmp;
         _Vector3D<T> pos_3;
+        size_t joint_offs = 0;
         for (size_t i = 0; i < LIMBS; i++) {            
-            limbs[i]->forward(current_joints[i], pos_3);
+            limbs[i]->forward(current_joints + joint_offs, pos_3);
             tmp = pos_3;
             limb_transform_fw[i].mul(tmp, pos_4);
             limb_pos[i] = pos_4.vector3d();
+            joints_offs += limbs[i].dof();
         }
     }
 
@@ -213,15 +224,17 @@ public:
         _Vector3D<T> local_pos;
         _Vector4D<T> pos_4;
         _Vector4D<T> tmp;
+        size_t joint_offs = 0;
         for (size_t i = 0; i < LIMBS; i++) {
             tmp = limb_pos[i];
             limb_transform_inv[i].mul(tmp, pos_4);
             local_pos = pos_4.vector3d();
-            limbs[i]->inverse(local_pos, current_joints[i], target_joints[i], local_pos, eps, max_iterations);
-            memcpy(current_joints[i], target_joints[i], sizeof(T) * limbs[i]->dof());
+            limbs[i]->inverse(local_pos, current_joints + joints_offs, target_joints + joints_offs, local_pos, eps, max_iterations);
+            memcpy(current_joints + joints_offs, target_joints + joints_offs, sizeof(T) * limbs[i]->dof());
             tmp = local_pos;
             limb_transform_fw[i].mul(tmp, pos_4);
             actual_limb_pos[i] = pos_4.vector3d();
+            joint_offs += limbs[i]->dof();
         }
     }
 };
