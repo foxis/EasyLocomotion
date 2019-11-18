@@ -48,7 +48,7 @@ class PCA9685 : public TwoWireDevice {
 public:
 	PCA9685(TwoWire * wire)
 		: PCA9685(wire, 0x40 | 0b1010101) { }
-  PCA9685(TwoWire * wire, byte pwm_addr)
+  PCA9685(TwoWire * wire, uint8_t pwm_addr)
 		: TwoWireDevice(wire, pwm_addr) {
   }
 

@@ -383,9 +383,9 @@ public:
 
 	void cross(const _Vector<T, 3>& b, _Vector<T, 3> & result) const
 	{
- 		result.x = y * b.data()[2] - z * b.data()[1];
-		result.y = z * b.data()[0] - x * b.data()[2];
-		result.z = x * b.data()[1] - y * b.data()[0];
+ 		result.data()[0] = y * b.data()[2] - z * b.data()[1];
+		result.data()[1] = z * b.data()[0] - x * b.data()[2];
+		result.data()[2] = x * b.data()[1] - y * b.data()[0];
 	}
 
 	static bool refraction(const _Vector<T, 3>& normal, const _Vector<T, 3>& v, T ni, T nt, _Vector3D<T> & result)

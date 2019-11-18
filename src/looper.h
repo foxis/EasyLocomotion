@@ -21,25 +21,49 @@
 #define LOOPER_H
 
 #include "math_utils.h"
+#include <limits>
 
 namespace Locomotion {
 
 class Looper {
 protected:
 	timestamp_t last_now;
+	timestamp_t last_step;
 
 public:
 	Looper() {}
 
-	virtual void begin() = 0;
+	virtual void begin(timestamp_t now) {
+		last_now = now;
+	}
 
 	virtual void loop(timestamp_t now) {
+		last_step = elapsed(now);
 		last_now = now;
 	}
 
 	virtual void loop(timestamp_t now, timestamp_t last_now) {
-		this->last_now = last_now;
 		this->loop(now);
+		this->last_now = last_now;
+	}
+
+	virtual void updated(timestamp_t now) {
+		last_now = now;
+	}
+
+	timestamp_t elapsed(timestamp_t now) const {
+		if (now > last_now)
+			return now - last_now;
+		else {
+			return now + (std::numeric_limits<timestamp_t>::max() - last_now);
+		}
+	}
+
+	timestamp_t elapsed() const {
+		return last_step;
+	}
+	timestamp_t get_last_now() const {
+		return last_now;
 	}
 };
 

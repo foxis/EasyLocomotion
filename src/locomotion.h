@@ -21,13 +21,13 @@
 #define LOCOMOTION_H
 
 #include "math_utils.h"
+#include "looper.h"
 
 namespace Locomotion {
 
 template<typename T>
-class _Locomotion {
+class _Locomotion : public Looper {
 protected:
-	timestamp_t last_updated;
 	_Quaternion<T> targetOrientation;
 	_Quaternion<T> currentOrientation;
 
@@ -37,30 +37,27 @@ protected:
 	timestamp_t thrust_off_timeout;
 
 public:
-	_Locomotion() {
-		last_updated = 0;
+	_Locomotion() : Looper() {
 		thrust_off_timeout = 2000;
 	}
 
-	virtual void begin() {
+	virtual void begin(timestamp_t now) {
 		setCurrentOrientation(Quaternion_ZERO);
 		setOrientation(Quaternion_ZERO);
 		setCurrentThrust(Quaternion_ZERO);
 		setThrust(Quaternion_ZERO);
+		Looper::begin(now);
 	}
 	virtual void loop(timestamp_t now)
 	{
-		if (thrust_off_timeout > 0 && now - last_updated > thrust_off_timeout) {
+		if (thrust_off_timeout > 0 && elapsed(now) > thrust_off_timeout) {
 			setThrust(Quaternion_ZERO);
-			last_updated = now;
 		}
+		Looper::loop(now);
 	}
 
-	virtual void updated(timestamp_t now) {
-		last_updated = now;
-	}
 	virtual void updated(timestamp_t now, timestamp_t timeout) {
-		last_updated = now;
+		Looper::updated(now);
 		thrust_off_timeout = timeout;
 	}
 

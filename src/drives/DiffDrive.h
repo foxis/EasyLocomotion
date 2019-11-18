@@ -42,14 +42,14 @@ public:
 		:_Locomotion<T>(),
 		 _DifferentialDriveController<T>(wheelBase),
 		 SimpleHBridge(AA, AB, BA, BB, motorConst)
-  {
+  	{
 		//thrust_off_timeout = 0;
-  }
+  	}
 
-  virtual void begin()
-  {
-		_Locomotion<T>::begin();
+  	virtual void begin(timestamp_t now)
+  	{
 		SimpleHBridge::begin();
+		_Locomotion<T>::begin(now);
 	}
 
 	virtual void setThrust(const _Quaternion<T>& thrust) {

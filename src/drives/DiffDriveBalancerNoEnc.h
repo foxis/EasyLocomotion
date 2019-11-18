@@ -55,7 +55,6 @@ namespace Locomotion {
 
 		int imu_sda, imu_scl, imu_addr;
 
-	  long prevTimeStamp;
 	  long duration;
 	  long fps;
 	  unsigned long stabilizingStart = 0;
@@ -79,24 +78,24 @@ namespace Locomotion {
 	    pidHeading(&currentHeading, &headingControl, &targetHeading, 0.1, 0.0, 0.001, DIRECT),
 	    pidSpeed(&currentSpeed, &targetInclination, &targetSpeed, .4, .6, 0.01, REVERSE),
 	    DiffDrive(AA, AB, BA, BB, wheelBase)
-	  {
-			this->imu_sda = imu_sda;
-			this->imu_scl = imu_scl;
-			this->imu_addr = imu_addr;
-	    this->fps = fps;
-	    duration = 1000000L / fps;
-	    pidSpeed.SetOutputLimits(-.5, .05);
-	    pidHeading.SetOutputLimits(-1, 1);
-	    pidInclination.SetOutputLimits(-1, 1);
-	    pidInclination.SetSampleTime(duration);
-	    pidSpeed.SetSampleTime(duration);
-	    pidHeading.SetSampleTime(duration);
-	    pidInclination.SetMode(AUTOMATIC);
-	    pidSpeed.SetMode(AUTOMATIC);
-	    pidHeading.SetMode(AUTOMATIC);
-	  }
+	{
+		this->imu_sda = imu_sda;
+		this->imu_scl = imu_scl;
+		this->imu_addr = imu_addr;
+		this->fps = fps;
+		duration = 1000000L / fps;
+		pidSpeed.SetOutputLimits(-.5, .05);
+		pidHeading.SetOutputLimits(-1, 1);
+		pidInclination.SetOutputLimits(-1, 1);
+		pidInclination.SetSampleTime(duration);
+		pidSpeed.SetSampleTime(duration);
+		pidHeading.SetSampleTime(duration);
+		pidInclination.SetMode(AUTOMATIC);
+		pidSpeed.SetMode(AUTOMATIC);
+		pidHeading.SetMode(AUTOMATIC);
+	}	
 
-	  void begin()
+	  virtual void begin(timestamp_t now)
 	  {
 	    Wire.begin(imu_sda, imu_scl);
 	    Wire.setClock(400000);
@@ -104,58 +103,57 @@ namespace Locomotion {
 
 	    Sensors::initialize();
 
-	    DiffDrive::begin();
-	    prevTimeStamp = micros();
+	    DiffDrive::begin(now);
 	  }
 
-	  void loop(timestamp_t now)
+	  virtual void loop(timestamp_t now)
 	  {
-	    if ( now - prevTimeStamp > duration ) {
-				#ifdef USE_LOGGING
-							logging = true;
-							if (log_size < LOG_SIZE && !dumping)
-							{
-								log[log_head].now = now;
-								log[log_head].currentInclination = (float)currentInclination;
-								log[log_head].targetInclination = (float)targetInclination;
-								log[log_head].fwdControl = (float)fwdControl;
-								log[log_head].currentSpeed = (float)currentSpeed;
-								log[log_head].targetSpeed = (float)targetSpeed;
-								log_head = (log_head + 1) % LOG_SIZE;
-								log_size ++;
-							}
-							logging = false;
-				#endif
-
-				DetermineOrientation();
-
-				if (stabilizing || fabs(currentInclination) > INCLINATION_THRESHOLD) {
-					if (now - stabilizingStart > STABILIZING_TIMEOUT && stabilizingStart != 0 && fabs(currentInclination) < INCLINATION_THRESHOLD)
-						stabilizing = false;
-					else {
-						setDiffSpeed(0, 0);
-						fwdControl = 0;
-						targetInclination = -.0475;
-						pidInclination.Reset();
-						pidHeading.Reset();
-						pidSpeed.Reset();
-						if (fabs(currentInclination) > INCLINATION_THRESHOLD)
+	    if ( elapsed(now) > duration ) {
+			#ifdef USE_LOGGING
+						logging = true;
+						if (log_size < LOG_SIZE && !dumping)
 						{
-							stabilizingStart = now;
-							stabilizing = true;
+							log[log_head].now = now;
+							log[log_head].currentInclination = (float)currentInclination;
+							log[log_head].targetInclination = (float)targetInclination;
+							log[log_head].fwdControl = (float)fwdControl;
+							log[log_head].currentSpeed = (float)currentSpeed;
+							log[log_head].targetSpeed = (float)targetSpeed;
+							log_head = (log_head + 1) % LOG_SIZE;
+							log_size ++;
 						}
+						logging = false;
+			#endif
+
+			DetermineOrientation();
+
+			if (stabilizing || fabs(currentInclination) > INCLINATION_THRESHOLD) {
+				if (now - stabilizingStart > STABILIZING_TIMEOUT && stabilizingStart != 0 && fabs(currentInclination) < INCLINATION_THRESHOLD)
+					stabilizing = false;
+				else {
+					setDifferentialSpeed(0, 0);
+					fwdControl = 0;
+					targetInclination = -.0475;
+					pidInclination.Reset();
+					pidHeading.Reset();
+					pidSpeed.Reset();
+					if (fabs(currentInclination) > INCLINATION_THRESHOLD)
+					{
+						stabilizingStart = now;
+						stabilizing = true;
 					}
 				}
-				DetermineSpeed();
+			}
+			DetermineSpeed();
 
-	      pidSpeed.Compute(now);
-	      pidHeading.Compute(now);
-	      pidInclination.Compute(now);
-				if (!stabilizing)
-	      	ApplyControls();
-				prevTimeStamp = now;
+			pidSpeed.Compute(now);
+			pidHeading.Compute(now);
+			pidInclination.Compute(now);
+			if (!stabilizing)
+		      	ApplyControls();
+			DiffDrive::loop(now);
 	    }
-	  }
+	}
 
 	  //
 	  // Control methods

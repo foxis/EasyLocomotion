@@ -86,7 +86,7 @@ typedef _PlanarJoint_t<real_t> PlanarJoint_t;
 
 };
 
-#include "PlanarKinematics2DOF.h"
-#include "PlanarKinematics3DOF.h"
+#include "_PlanarKinematics2DOF.h"
+#include "_PlanarKinematics3DOF.h"
 
 #endif

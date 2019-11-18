@@ -22,7 +22,7 @@
 
 #include "../locomotion.h"
 #include "kinematics.h"
-#include "ik_solver_jacob.h"
+#include "_ik_solver_jacob.h"
 
 namespace Locomotion {
 
@@ -94,7 +94,7 @@ public:
     _DenavitHartenbergKinematics(const T * DH_parameters, const _ConstraintSegment<T> * param_constraints, const _ConstraintVolume<T> & working_space)
         : parameters(DH_parameters), constraints(param_constraints), _working_space(working_space) {
         for (size_t i = 0; i < DOF; i++)
-            this->joint_types[i] = (uint8_t)DH_parameters[I * 5 + 4];
+            this->joint_types[i] = (uint8_t)DH_parameters[i * 5 + 4];
     }
     ~_DenavitHartenbergKinematics() {
     }

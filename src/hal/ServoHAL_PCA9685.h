@@ -37,12 +37,14 @@ class _ServoHAL_PCA9685 : public _ServoHAL<T, uint16_t, N> {
     float frequency;
 
 public:
-    ServoHAL(const ServoConfig_t * config, PCA9685 * pca, float frequency) 
-        : _ServoHAL<T, int16_t, N>(config), pca9685(pca), frequency(frequency)
+    _ServoHAL_PCA9685(const ServoConfig_t * config, PCA9685 * pca, float frequency) 
+        : _ServoHAL<T, uint16_t, N>(config), pca9685(pca), frequency(frequency)
     {
         num_boards = N >> 4;
-        if (N & 0x0F != 0)
+        if ((N & 0x0F) != 0)
             num_boards++;
+        Serial.print("Number of boards detected: ");
+        Serial.println(num_boards);
     }
 
     virtual void begin(bool init) {
@@ -58,11 +60,12 @@ public:
 
     virtual void send() {
         size_t M = N;
-        int16_t *p = this->positions;
+        uint16_t *p = this->positions;
         for (size_t i = 0; i < num_boards; i++) {
-            uint8_t K = MIN(M, 16);
+            uint8_t K = MIN(M, (size_t)16);
+            print_arr<uint16_t, N>(this->positions, "Sending servo positions");
             for (uint8_t j = 0; j < K; j++) {
-                pca9865[i].setPWMraw(j, *p, false);
+                pca9685[i].setPWMraw(j, *p, false);
                 ++p;
             }
             M -= K;

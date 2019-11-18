@@ -41,20 +41,28 @@ typedef struct _ServoConfig_struct {
 template<typename T, typename T1, size_t N>
 class _ServoHAL {
 protected:
-    const _ServoConfig_t * config;
+    const ServoConfig_t * config;
     T1 positions[N];
 
 public:
-    ServoHAL(const _ServoConfig_t * config) : config(config)
+    _ServoHAL(const ServoConfig_t * config) : config(config)
     {
     }
 
     virtual void begin(bool init) = 0;
     virtual void end() = 0;
 
+    virtual void set_pos(const T * pos_arr) {
+        for (int i = 0; i < N; i++)
+            set_pos(i, pos_arr[i]);
+    }
     virtual void set_pos(size_t i, T pos) {
         T k = config[i].k, b = config[i].b;
         positions[i] = (T1)(pos * k + b);
+    }
+    virtual void get_pos(T * pos_arr) {
+        for (int i = 0; i < N; i++)
+            pos_arr[i] = get_pos(i);
     }
     virtual real_t get_pos(size_t i) const {
         T k = config[i].k, b = config[i].b;

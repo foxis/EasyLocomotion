@@ -96,16 +96,16 @@ public:
 		}
         current_joints = new T[total_joints];
         target_joints = new T[total_joints];
-        memset(current_joints[i], 0, sizeof(T) * total_joints);
-        memset(target_joints[i], 0, sizeof(T) * total_joints);
+        memset(current_joints, 0, sizeof(T) * total_joints);
+        memset(target_joints, 0, sizeof(T) * total_joints);
         set_transform(position, orientation);
         calculate_transforms();
         forward_limbs();
         fix_reference();
 	}
     ~_BodyModel() {
-        delete[] current_joints[i];
-        delete[] target_joints[i];
+        delete[] current_joints;
+        delete[] target_joints;
     }
 
     void set_transform(const _Vector3D<T> & position, const _Vector3D<T> & orientation) {
@@ -213,7 +213,7 @@ public:
             tmp = pos_3;
             limb_transform_fw[i].mul(tmp, pos_4);
             limb_pos[i] = pos_4.vector3d();
-            joints_offs += limbs[i].dof();
+            joint_offs += limbs[i]->dof();
         }
     }
 
@@ -229,8 +229,8 @@ public:
             tmp = limb_pos[i];
             limb_transform_inv[i].mul(tmp, pos_4);
             local_pos = pos_4.vector3d();
-            limbs[i]->inverse(local_pos, current_joints + joints_offs, target_joints + joints_offs, local_pos, eps, max_iterations);
-            memcpy(current_joints + joints_offs, target_joints + joints_offs, sizeof(T) * limbs[i]->dof());
+            limbs[i]->inverse(local_pos, current_joints + joint_offs, target_joints + joint_offs, local_pos, eps, max_iterations);
+            memcpy(current_joints + joint_offs, target_joints + joint_offs, sizeof(T) * limbs[i]->dof());
             tmp = local_pos;
             limb_transform_fw[i].mul(tmp, pos_4);
             actual_limb_pos[i] = pos_4.vector3d();

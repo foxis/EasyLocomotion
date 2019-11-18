@@ -1,4 +1,5 @@
 #define MATH_UTILS_TESTS \
+    TYPES_TESTS; \
     CONSTRAINTS_TESTS; \
     VECTORS_TESTS; \
     VECTORS2D_TESTS; \
@@ -8,8 +9,10 @@
     MATRICES_TESTS; \
     MATRICES_2X2_TESTS; \
     MATRICES_3X3_TESTS; \
-    MATRICES_4X4_TESTS;
+    MATRICES_4X4_TESTS; \
 
+
+#include "test_types.hpp"
 #include "test_constraints.hpp"
 #include "test_vectors.hpp"
 #include "test_vectors_2d.hpp"

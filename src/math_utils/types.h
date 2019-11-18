@@ -21,6 +21,7 @@
 #define MATH_UTILS_TYPES_H
 
 #include <math.h>
+#include <limits>
 
 namespace Locomotion {
 
@@ -45,13 +46,15 @@ typedef TIMESTAMP_T timestamp_t;
 // See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
 float FAST_ISQRT(float x){
     float halfx = 0.5f * x;
-    float y = x;
-    long i = *(long*)&y;
-    i = 0x5f3759df - (i>>1);
-    y = *(float*)&i;
-    y = y * (1.5f - (halfx * y * y));
-    y = y * (1.5f - (halfx * y * y));
-    return y;
+    union {
+        float f;
+        uint32_t i;
+    } tmp;
+    tmp.f = x;
+    tmp.i = 0x5f3759df - (tmp.i >> 1);
+    tmp.f = tmp.f * (1.5f - (halfx * tmp.f * tmp.f));
+    tmp.f = tmp.f * (1.5f - (halfx * tmp.f * tmp.f));
+    return tmp.f;
 }
 
 // Macros for Modern Matrix Methods ("Numerical Recipies in C")
@@ -64,11 +67,11 @@ template<typename T> void SWAP(T * a, T * b) {
     *a = *b;
     *b = tmp;
 }
-template<typename T, size_t N> void SWAP_ROWS(T * a, T * b) {
-    T tmp[N];
-    memcpy(tmp, a, sizeof(T) * N);
-    memcpy(a, b, sizeof(T) * N);
-    memcpy(b, a, sizeof(T) * N);
+template<typename T, size_t M> void SWAP_ROWS(T * a, T * b) {
+    T tmp[M];
+    memcpy(tmp, a, sizeof(T) * M);
+    memcpy(a, b, sizeof(T) * M);
+    memcpy(b, tmp, sizeof(T) * M);
 }
 template<typename T, size_t M> void SWAP_COLS(T * a, T * b) {
     for (size_t i = 0; i < M; i++) {
@@ -97,7 +100,7 @@ template<typename T, size_t M> T SUM_COL(const T * a) {
 template<typename T, size_t N> T MEAN_ROW(const T * a) { return SUM_ROW<N>(a) / (T)N; }
 template<typename T, size_t M> T MEAN_COL(const T * a) { return SUM_COL<M>(a) / (T)M; }
 template<typename T, size_t N> T MAX_ROW(const T * a) { 
-    T m = 0;
+    T m = std::numeric_limits<T>::min();
     for (size_t i = 0; i < N; i++) {
         m = MAX(*a, m);
         ++a;
@@ -105,7 +108,7 @@ template<typename T, size_t N> T MAX_ROW(const T * a) {
     return m;
 }
 template<typename T, size_t M> T MAX_COL(const T * a) { 
-    T m = 0;
+    T m = std::numeric_limits<T>::min();
     for (size_t i = 0; i < M; i++) {
         m = MAX(*a, m);
         a += M;
@@ -113,7 +116,7 @@ template<typename T, size_t M> T MAX_COL(const T * a) {
     return m; 
 }
 template<typename T, size_t N> T MIN_ROW(const T * a) { 
-    T m = 0;
+    T m = std::numeric_limits<T>::max();
     for (size_t i = 0; i < N; i++) {
         m = MIN(*a, m);
         ++a;
@@ -121,7 +124,7 @@ template<typename T, size_t N> T MIN_ROW(const T * a) {
     return m;
 }
 template<typename T, size_t M> T MIN_COL(const T * a) { 
-    T m = 0;
+    T m = std::numeric_limits<T>::max();
     for (size_t i = 0; i < M; i++) {
         m = MIN(*a, m);
         a += M;
@@ -140,8 +143,8 @@ template<typename T, size_t M, size_t K=M> void SET_COL(T * a, T c) {
         a += M;
     }
 }
-template<typename T, size_t N> void SET_ROW(T * dst, const T * src) { 
-    for (size_t i = 0; i < N; i++) {
+template<typename T, size_t M> void SET_ROW(T * dst, const T * src) { 
+    for (size_t i = 0; i < M; i++) {
         *dst = *src;
         ++dst;
         ++src;
