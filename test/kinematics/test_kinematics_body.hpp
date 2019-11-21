@@ -1,5 +1,6 @@
 #define KINEMATICS_BODY_TESTS \
     _RUN_TEST(test_kinematics_body); \
+    _RUN_TEST(test_kinematics_body_pos); \
 
 void test_kinematics_body() {
     PlanarJoint_t joints_2dof[] = {
@@ -109,6 +110,51 @@ void test_kinematics_body() {
     print_vector(body.limb_pos[1], "body inv limb 1");
     print_vector(body.actual_limb_pos[1], "body inv limb actual 1");
     print_arr<real_t, 2>(body.target_joints + 2, "target joints 1");
+
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].x, 91.953178);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].y, -26.713535);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].z, -53);
+
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[1].x, -92.578911);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[1].y, 22.762775);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[1].z, -53);
+}
+
+void test_kinematics_body_pos() {
+    PlanarJoint_t joints_2dof[] = {
+        {
+            .constraints = {
+                .min = -M_PI, 
+                .max = M_PI
+            }, 
+            .length = 10 
+        },
+        {
+            .constraints = {-M_PI, M_PI}, 
+            .length = 75
+        },
+    };
+    ConstraintVolume vol_2dof(Vector3D(-10+10+75, -10, -10), Vector3D(10+10+75, 10, 10));
+    PlanarKinematics2DOF limb(joints_2dof, vol_2dof);
+
+    LimbKinematicsModel* limbs[] = {
+        &limb,
+        &limb,
+    };
+    LimbConfig_t limb_config[] = {
+        {
+            .displacement=Vector3D(10, -10, 0),
+            .orientation=Vector3D(0, 0, 0),
+        },
+        {
+            .displacement=Vector3D(-10, 10, 0),
+            .orientation=Vector3D(0, 0, M_PI),
+        },
+    };
+    Vector3D position(0, 2, 53);
+    Vector3D orientation(0, 0, M_PI/20.0);
+
+	BodyModel<2> body(limbs, limb_config, position, orientation);
 
     TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].x, 91.953178);
     TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].y, -26.713535);
