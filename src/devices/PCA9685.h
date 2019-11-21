@@ -59,8 +59,7 @@ public:
   }
 
   void setFreq(float f) {
-    float prescaleval = 25000000 / (4096 * f * 0.9) - 1.0;
-    byte prescale = floor(prescaleval + 0.5);
+    byte prescale = floor(25000000 / (4096 * f) + 0.5) - 1;
 
     byte oldmode = read8(PCA9685_MODE1);
     byte newmode = (oldmode & 0x7F) | 0x10; // sleep
