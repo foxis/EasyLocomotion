@@ -35,24 +35,25 @@ void test_kinematics_body() {
     };
     Vector3D position(0.0);
     Vector3D orientation(0.0);
+    ConstraintVolume working_space(-30, -30, -60, 30, 30, 60);
 
-	BodyModel<2> body(limbs, limb_config, position, orientation);
+	BodyModel<2> body(limbs, limb_config, working_space, position, orientation);
 
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[0].min.x, 0+10+75);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[0].min.y, -20);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[0].min.z, -10);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[0].min.x, 0+10+75);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[0].min.y, -20);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[0].min.z, -10);
 
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[0].max.x, 20+10+75);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[0].max.y, 0);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[0].max.z, 10);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[0].max.x, 20+10+75);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[0].max.y, 0);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[0].max.z, 10);
 
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[1].min.x, -20-10-75);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[1].min.y, 0);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[1].min.z, -10);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[1].min.x, -20-10-75);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[1].min.y, 0);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[1].min.z, -10);
 
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[1].max.x, 0-10-75);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[1].max.y, 20);
-    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.working_space[1].max.z, 10);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[1].max.x, 0-10-75);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[1].max.y, 20);
+    TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_working_space[1].max.z, 10);
 
     TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].x, 10+10+75);
     TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].y, -10);
@@ -153,8 +154,9 @@ void test_kinematics_body_pos() {
     };
     Vector3D position(0, 2, 53);
     Vector3D orientation(0, 0, M_PI/20.0);
+    ConstraintVolume working_space(-30, -30, -60, 30, 30, 60);
 
-	BodyModel<2> body(limbs, limb_config, position, orientation);
+	BodyModel<2> body(limbs, limb_config, working_space, position, orientation);
 
     TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].x, 91.953178);
     TEST_ASSERT_FLOAT_WITHIN(1e-4, body.limb_pos[0].y, -26.713535);
