@@ -38,8 +38,9 @@ protected:
 
 public:
 	_MultipodDrive(_ServoHAL<T, T1, SERVO_COUNT> & hal, _MultipodController<T, LIMBS> & controller, 
-				   LimbModelPtr_t * limbs, const _LimbConfig_t<T> * limb_config, const _Vector3D<T> & position, const _Vector3D<T> & orientation)
-		: _BodyModel<T, LIMBS>(limbs, limb_config, position, orientation),
+				   LimbModelPtr_t * limbs, const _LimbConfig_t<T> * limb_config, 
+				   _ConstraintVolume<T> & working_space, const _Vector3D<T> & position, const _Vector3D<T> & orientation)
+		: _BodyModel<T, LIMBS>(limbs, limb_config, working_space, position, orientation),
 		  _Locomotion<T>(), hal(hal), controller(controller) 
 	{
 		controller.set_body(this);
@@ -54,7 +55,6 @@ public:
 
 	virtual void loop(timestamp_t now) {
 		controller.loop(now, this->last_now);
-		print_arr<T, 12>(this->current_joints, "Multipod Drive - Current joints");
 		hal.set_pos(this->current_joints);
 		hal.send();
 		_Locomotion<T>::loop(now);

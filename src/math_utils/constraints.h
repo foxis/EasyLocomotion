@@ -88,7 +88,9 @@ public:
 	{
 		copy(v);
 	}
-	_ConstraintArea(const _Vector2D<T> & min, const _Vector2D<T> & max)
+	_ConstraintArea(T minx, T miny, T maxx, T maxy) 
+		: _ConstraintArea(_Vector2D<T>(minx, miny), _Vector2D<T>(maxx, maxy)) {}
+	_ConstraintArea(const _Vector<T, 2> & min, const _Vector<T, 2> & max)
 	{
 		this->min = min;
 		this->max = max;
@@ -106,11 +108,11 @@ public:
 		return a * b;
 	}
 
-	inline bool in(const _Vector2D<T> & val) const {
+	inline bool in(const _Vector3D<T> & val) const {
 		return val.x >= min.x && val.x <= max.x && val.y >= min.y && val.y <= max.y;
 	}
 
-	inline _Vector2D<T> limit(const _Vector2D<T> & val) const {
+	inline _Vector2D<T> limit(const _Vector3D<T> & val) const {
 		_Vector2D<T> tmp;
 		if (val.x < min.x)
 			tmp.x = min.x;
@@ -156,11 +158,9 @@ public:
 	{
 		copy(v);
 	}
-	_ConstraintVolume(const _Vector3D<T> & min, const _Vector3D<T> & max)
-	{
-		this->min = min;
-		this->max = max;
-	}
+	_ConstraintVolume(T minx, T miny, T minz, T maxx, T maxy, T maxz) 
+		: _ConstraintVolume(_Vector3D<T>(minx, miny, minz), _Vector3D<T>(maxx, maxy, maxz)) {}
+	_ConstraintVolume(const _Vector<T, 3> & min, const _Vector<T, 3> & max) : min(min), max(max) {}
 
 	inline void copy(const _ConstraintVolume<T>& v)
 	{

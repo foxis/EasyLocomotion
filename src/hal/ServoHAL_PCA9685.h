@@ -43,8 +43,6 @@ public:
         num_boards = N >> 4;
         if ((N & 0x0F) != 0)
             num_boards++;
-        Serial.print("Number of boards detected: ");
-        Serial.println(num_boards);
     }
 
     virtual void begin(bool init) {
@@ -63,7 +61,6 @@ public:
         uint16_t *p = this->positions;
         for (size_t i = 0; i < num_boards; i++) {
             uint8_t K = MIN(M, (size_t)16);
-            print_arr<uint16_t, N>(this->positions, "Sending servo positions");
             for (uint8_t j = 0; j < K; j++) {
                 pca9685[i].setPWMraw(j, *p, false);
                 ++p;
